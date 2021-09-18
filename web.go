@@ -9,7 +9,7 @@ import (
 func webserver() {
 	flag.Parse()
 	path := flag.Arg(0)
-	keyPath := flag.Arg(0)
+	keyPath := flag.Arg(1)
 	if path == "" {
 		log.Println("No argument given for website file path. website signing off...")
 		quitChan <- "web arg"

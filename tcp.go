@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -84,7 +83,6 @@ func link(port int, addr string, failChan chan int) {
 func parseConf() (links map[int]string, err error) {
 	conf, err := os.Open("/etc/darkstorm-server.conf")
 	if os.IsNotExist(err) {
-		fmt.Println("HII")
 		return nil, nil
 	} else if err != nil {
 		return nil, err

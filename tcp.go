@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -14,12 +15,12 @@ import (
 
 func tcpLinker() {
 	links, err := parseConf()
-	if links == nil {
-		log.Println("No values in config file or file not present (/etc/darkstorm-server.conf). tcp linker signing off")
+	if err != nil {
+		log.Println("Error while trying to parse config file:", err, "tcp linker signing off")
 		quitChan <- "tcp conf"
 		return
-	} else if err != nil {
-		log.Println("Error while trying to parse config file:", err)
+	} else if links == nil {
+		log.Println("No values in config file or file not present (/etc/darkstorm-server.conf). tcp linker signing off")
 		quitChan <- "tcp conf"
 		return
 	}
@@ -58,36 +59,22 @@ failWaiting:
 
 func link(port int, addr string, failChan chan int) {
 	listen, err := net.Listen("tcp", ":"+strconv.Itoa(port))
-	defer listen.Close()
 	if err != nil {
 		log.Println("Error while trying to listen to port ", port, ":", err)
 		failChan <- port
 		return
 	}
+	defer listen.Close()
 	for {
 		con, err := listen.Accept()
-		defer con.Close()
 		if err != nil {
 			log.Println("Error while trying to accept connection to port ", port, ":", err)
 			failChan <- port
 			return
 		}
-		ext, err := net.Dial("tcp", addr)
-		defer ext.Close()
+		err = copyConn(con, addr)
 		if err != nil {
-			log.Println("Error while trying to dial", addr, ":", err)
-			failChan <- port
-			return
-		}
-		_, err = io.Copy(ext, con)
-		if err != nil {
-			log.Println("Error while trying to copy data to", addr, ":", err)
-			failChan <- port
-			return
-		}
-		_, err = io.Copy(con, ext)
-		if err != nil {
-			log.Println("Error while trying to copy data to port", port, ":", err)
+			log.Println("Error while trying copy data from port", port, "to address", addr, ":", err)
 			failChan <- port
 			return
 		}
@@ -97,7 +84,10 @@ func link(port int, addr string, failChan chan int) {
 func parseConf() (links map[int]string, err error) {
 	conf, err := os.Open("/etc/darkstorm-server.conf")
 	if os.IsNotExist(err) {
+		fmt.Println("HII")
 		return nil, nil
+	} else if err != nil {
+		return nil, err
 	}
 	lineNum := 0
 	links = make(map[int]string)
@@ -106,8 +96,10 @@ func parseConf() (links map[int]string, err error) {
 		lineNum++
 		var origLine string
 		origLine, err = rdr.ReadString('\n')
-		if err != nil {
+		if err != nil && origLine == "" {
 			break
+		} else if origLine == "" {
+			continue
 		}
 		line := strings.ReplaceAll(origLine, "\t", " ")
 		for strings.Contains(line, "  ") {
@@ -129,8 +121,36 @@ func parseConf() (links map[int]string, err error) {
 		links[i] = split[1]
 	}
 	err = nil
-	if len(links) > 0 {
+	if len(links) == 0 {
 		return nil, nil
 	}
 	return
+}
+
+func copyConn(src net.Conn, addr string) error {
+	dst, err := net.Dial("tcp", addr)
+	if err != nil {
+		log.Println("Erro while dialing", addr)
+		return err
+	}
+
+	done := make(chan struct{})
+
+	go func() {
+		defer src.Close()
+		defer dst.Close()
+		io.Copy(dst, src)
+		done <- struct{}{}
+	}()
+
+	go func() {
+		defer src.Close()
+		defer dst.Close()
+		io.Copy(src, dst)
+		done <- struct{}{}
+	}()
+
+	<-done
+	<-done
+	return nil
 }

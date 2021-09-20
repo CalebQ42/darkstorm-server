@@ -90,16 +90,38 @@ func parseConf() (links map[int]string, err error) {
 	lineNum := 0
 	links = make(map[int]string)
 	rdr := bufio.NewReader(conf)
+	multilineComment := false
+	var line string
 	for {
-		lineNum++
-		var origLine string
-		origLine, err = rdr.ReadString('\n')
-		if err != nil && origLine == "" {
-			break
-		} else if origLine == "" {
-			continue
+		if line == "" {
+			lineNum++
+			line, err = rdr.ReadString('\n')
+			if err != nil && line == "" {
+				break
+			} else if line == "" {
+				continue
+			}
 		}
-		line := strings.ReplaceAll(origLine, "\t", " ")
+		startCom, endCom := strings.Index(line, "/*"), strings.Index(line, "*/")
+		if multilineComment {
+			if endCom != -1 {
+				line = line[endCom:]
+			} else {
+				continue
+			}
+		}
+		if startCom != -1 {
+			if endCom != -1 {
+				line = line[:startCom] + line[endCom:]
+				continue
+			}
+			line = line[:startCom]
+			multilineComment = true
+		}
+		if strings.Contains(line, "//") {
+			line = line[:strings.Index(line, "//")]
+		}
+		line = strings.ReplaceAll(line, "\t", " ")
 		for strings.Contains(line, "  ") {
 			line = strings.Replace(line, "  ", " ", -1)
 		}
@@ -117,6 +139,7 @@ func parseConf() (links map[int]string, err error) {
 			return nil, errors.New("invalid line #" + strconv.Itoa(lineNum))
 		}
 		links[i] = split[1]
+		line = ""
 	}
 	err = nil
 	if len(links) == 0 {

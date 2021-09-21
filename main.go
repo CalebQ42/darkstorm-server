@@ -8,7 +8,7 @@ import (
 var quitChan chan string = make(chan string)
 
 func main() {
-	go tcpLinker()
+	go linker()
 	go webserver()
 	for failure := <-quitChan; ; failure = <-quitChan {
 		switch failure {
@@ -28,7 +28,7 @@ func tcpLinkerRestart() {
 	log.Println("TCP linker failed. Restarting in 5 seconds...")
 	time.Sleep(5 * time.Second)
 	log.Println("Restarting tcp linker")
-	tcpLinker()
+	linker()
 }
 
 func websiteRestart() {

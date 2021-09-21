@@ -12,7 +12,12 @@ import (
 	"time"
 )
 
-func tcpLinker() {
+type link struct {
+	addr     string
+	linkType string
+}
+
+func linker() {
 	links, err := parseConf()
 	if err != nil {
 		log.Println("Error while trying to parse config file:", err, "tcp linker signing off")
@@ -28,7 +33,7 @@ func tcpLinker() {
 	open := make(map[int]bool)
 	for port, addr := range links {
 		open[port] = true
-		go link(port, addr, failChan)
+		go createLink(port, addr, failChan)
 	}
 failWaiting:
 	for portFail := <-failChan; ; portFail = <-failChan {
@@ -51,13 +56,14 @@ failWaiting:
 		}
 		fails[portFail]++
 		log.Println("Restarting linking for port", portFail)
-		go link(portFail, links[portFail], failChan)
+		go createLink(portFail, links[portFail], failChan)
 	}
 
 }
 
-func link(port int, addr string, failChan chan int) {
-	listen, err := net.Listen("tcp", ":"+strconv.Itoa(port))
+func createLink(port int, l link, failChan chan int) {
+	log.Println("Linking", port, "to", l.addr, "with type", l.linkType)
+	listen, err := net.Listen(l.linkType, ":"+strconv.Itoa(port))
 	if err != nil {
 		log.Println("Error while trying to listen to port ", port, ":", err)
 		failChan <- port
@@ -71,16 +77,16 @@ func link(port int, addr string, failChan chan int) {
 			failChan <- port
 			return
 		}
-		err = copyConn(con, addr)
+		err = copyConn(con, l)
 		if err != nil {
-			log.Println("Error while trying copy data from port", port, "to address", addr, ":", err)
+			log.Println("Error while trying copy data from port", port, "to address", l.addr, ":", err)
 			failChan <- port
 			return
 		}
 	}
 }
 
-func parseConf() (links map[int]string, err error) {
+func parseConf() (links map[int]link, err error) {
 	conf, err := os.Open("/etc/darkstorm-server.conf")
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -88,7 +94,7 @@ func parseConf() (links map[int]string, err error) {
 		return nil, err
 	}
 	lineNum := 0
-	links = make(map[int]string)
+	links = make(map[int]link)
 	rdr := bufio.NewReader(conf)
 	multilineComment := false
 	var line string
@@ -130,15 +136,20 @@ func parseConf() (links map[int]string, err error) {
 			continue
 		}
 		split := strings.Split(line, " ")
-		if len(split) != 2 {
+		if len(split) < 2 || len(split) > 3 {
 			return nil, errors.New("invalid line #" + strconv.Itoa(lineNum))
+		}
+		var l link
+		if len(split) == 3 {
+		} else {
+			l.linkType = "tcp"
 		}
 		var i int
 		i, err = strconv.Atoi(split[0])
 		if err != nil {
 			return nil, errors.New("invalid line #" + strconv.Itoa(lineNum))
 		}
-		links[i] = split[1]
+		links[i] = l
 		line = ""
 	}
 	err = nil
@@ -148,10 +159,10 @@ func parseConf() (links map[int]string, err error) {
 	return
 }
 
-func copyConn(src net.Conn, addr string) error {
-	dst, err := net.Dial("tcp", addr)
+func copyConn(src net.Conn, l link) error {
+	dst, err := net.Dial(l.linkType, l.addr)
 	if err != nil {
-		log.Println("Erro while dialing", addr)
+		log.Println("Erro while dialing", l.addr)
 		return err
 	}
 

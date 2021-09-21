@@ -151,6 +151,7 @@ func parseConf() (links map[int]link, err error) {
 		if err != nil {
 			return nil, errors.New("invalid line #" + strconv.Itoa(lineNum))
 		}
+		l.addr = split[1]
 		links[i] = l
 		line = ""
 	}

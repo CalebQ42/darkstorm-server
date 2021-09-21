@@ -141,6 +141,8 @@ func parseConf() (links map[int]link, err error) {
 		}
 		var l link
 		if len(split) == 3 {
+			l.linkType = split[0]
+			split = split[1:]
 		} else {
 			l.linkType = "tcp"
 		}

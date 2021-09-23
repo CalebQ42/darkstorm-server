@@ -17,6 +17,14 @@ type link struct {
 	linkType string
 }
 
+func (l link) isTCP() bool {
+	return strings.HasPrefix(l.linkType, "tcp") || strings.HasPrefix(l.linkType, "unix")
+}
+
+func (l link) isUDP() bool {
+	return strings.HasPrefix(l.linkType, "udp")
+}
+
 func linker() {
 	links, err := parseConf()
 	if err != nil {
@@ -63,15 +71,34 @@ failWaiting:
 
 func createLink(port int, l link, failChan chan int) {
 	log.Println("Linking", port, "to", l.addr, "with type", l.linkType)
-	listen, err := net.Listen(l.linkType, ":"+strconv.Itoa(port))
-	if err != nil {
-		log.Println("Error while trying to listen to port ", port, ":", err)
-		failChan <- port
-		return
+	var tcpListen net.Listener
+	var con net.Conn
+	var err error
+	if l.isTCP() {
+		tcpListen, err = net.Listen(l.linkType, ":"+strconv.Itoa(port))
+		if err != nil {
+			log.Println("Error while trying to listen to port", port, ":", err)
+			failChan <- port
+			return
+		}
+		defer tcpListen.Close()
+	} else if l.isUDP() {
+		var addr *net.UDPAddr
+		addr, err = net.ResolveUDPAddr(l.linkType, ":"+strconv.Itoa(port))
+		if err != nil {
+			log.Println("Error while parsing port", port, ":", err)
+			failChan <- port
+			return
+		}
+		con, err = net.ListenUDP(l.linkType, addr)
+		if err != nil {
+			log.Println("Error while listening to port", port, ":", err)
+		}
 	}
-	defer listen.Close()
 	for {
-		con, err := listen.Accept()
+		if l.isTCP() {
+			con, err = tcpListen.Accept()
+		}
 		if err != nil {
 			log.Println("Error while trying to accept connection to port ", port, ":", err)
 			failChan <- port
@@ -82,6 +109,19 @@ func createLink(port int, l link, failChan chan int) {
 			log.Println("Error while trying copy data from port", port, "to address", l.addr, ":", err)
 			failChan <- port
 			return
+		}
+		if l.isUDP() {
+			var addr *net.UDPAddr
+			addr, err = net.ResolveUDPAddr(l.linkType, ":"+strconv.Itoa(port))
+			if err != nil {
+				log.Println("Error while parsing port", port, ":", err)
+				failChan <- port
+				return
+			}
+			con, err = net.ListenUDP(l.linkType, addr)
+			if err != nil {
+				log.Println("Error while listening to port", port, ":", err)
+			}
 		}
 	}
 }
@@ -165,7 +205,7 @@ func parseConf() (links map[int]link, err error) {
 func copyConn(src net.Conn, l link) error {
 	dst, err := net.Dial(l.linkType, l.addr)
 	if err != nil {
-		log.Println("Erro while dialing", l.addr)
+		log.Println("Error while dialing", l.addr)
 		return err
 	}
 

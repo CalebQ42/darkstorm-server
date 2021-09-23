@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	forward "github.com/1lann/udp-forward"
 )
 
 type link struct {
@@ -71,6 +73,15 @@ failWaiting:
 
 func createLink(port int, l link, failChan chan int) {
 	log.Println("Linking", port, "to", l.addr, "with type", l.linkType)
+	if l.isUDP() {
+		_, err := forward.Forward(":"+strconv.Itoa(port), l.addr, forward.DefaultTimeout)
+		if err != nil {
+			log.Println("Error with udp forwarder on port", port, ":", err)
+			failChan <- port
+			return
+		}
+		return
+	}
 	var tcpListen net.Listener
 	var con net.Conn
 	var err error
@@ -82,23 +93,9 @@ func createLink(port int, l link, failChan chan int) {
 			return
 		}
 		defer tcpListen.Close()
-	} else if l.isUDP() {
-		var addr *net.UDPAddr
-		addr, err = net.ResolveUDPAddr(l.linkType, ":"+strconv.Itoa(port))
-		if err != nil {
-			log.Println("Error while parsing port", port, ":", err)
-			failChan <- port
-			return
-		}
-		con, err = net.ListenUDP(l.linkType, addr)
-		if err != nil {
-			log.Println("Error while listening to port", port, ":", err)
-		}
 	}
 	for {
-		if l.isTCP() {
-			con, err = tcpListen.Accept()
-		}
+		con, err = tcpListen.Accept()
 		if err != nil {
 			log.Println("Error while trying to accept connection to port ", port, ":", err)
 			failChan <- port
@@ -109,19 +106,6 @@ func createLink(port int, l link, failChan chan int) {
 			log.Println("Error while trying copy data from port", port, "to address", l.addr, ":", err)
 			failChan <- port
 			return
-		}
-		if l.isUDP() {
-			var addr *net.UDPAddr
-			addr, err = net.ResolveUDPAddr(l.linkType, ":"+strconv.Itoa(port))
-			if err != nil {
-				log.Println("Error while parsing port", port, ":", err)
-				failChan <- port
-				return
-			}
-			con, err = net.ListenUDP(l.linkType, addr)
-			if err != nil {
-				log.Println("Error while listening to port", port, ":", err)
-			}
 		}
 	}
 }

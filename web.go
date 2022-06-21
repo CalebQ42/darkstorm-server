@@ -2,8 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -24,13 +27,26 @@ func webserver() {
 	}
 	http.Handle("/SWAssistant/", swaHandler{})
 	http.Handle("/", http.FileServer(http.Dir(path)))
+	http.Handle("rpg.darkstorm.tech/", sup{})
 	err := http.ListenAndServeTLS(":443", keyPath+"/cert.pem", keyPath+"/key.pem", nil)
 	log.Println("Error while serving website:", err)
 	quitChan <- "web err"
 }
 
-type swaHandler struct {
+type sup struct{}
+
+func (s sup) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	fmt.Println(req.URL)
+	url, err := url.Parse("http://localhost:30000")
+	if err != nil {
+		fmt.Println(err)
+		http.FileServer(http.Dir(flag.Arg(0))).ServeHTTP(writer, req)
+	}
+	rvProx := httputil.NewSingleHostReverseProxy(url)
+	rvProx.ServeHTTP(writer, req)
 }
+
+type swaHandler struct{}
 
 func (s swaHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	if _, err := os.Open(path.Join(flag.Arg(0) + req.URL.EscapedPath())); strings.Contains(req.URL.EscapedPath(), "#") || err == nil {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"log"
@@ -25,10 +26,34 @@ func webserver() {
 		quitChan <- "web arg"
 		return
 	}
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	http.Handle("/SWAssistant/", swaHandler{})
 	http.Handle("/", http.FileServer(http.Dir(path)))
 	http.Handle("rpg.darkstorm.tech/", sup{})
-	err := http.ListenAndServeTLS(":443", keyPath+"/cert.pem", keyPath+"/key.pem", nil)
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	tlsConf := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	cert, err := tls.LoadX509KeyPair(keyPath+"/cert.pem", keyPath+"/key.pem")
+	if err != nil {
+		log.Println("Error while serving website:", err)
+		quitChan <- "web err"
+		return
+	}
+	tlsConf.Certificates = append(tlsConf.Certificates, cert)
+	cert, err = tls.LoadX509KeyPair(keyPath+"/foundrycert.pem", keyPath+"/foundrykey.pem")
+	if err != nil {
+		log.Println("Error while serving website:", err)
+		quitChan <- "web err"
+		return
+	}
+	tlsConf.Certificates = append(tlsConf.Certificates, cert)
+	serve := http.Server{
+		Addr:      ":443",
+		TLSConfig: tlsConf,
+	}
+	err = serve.ListenAndServeTLS("", "")
+	// err := http.ListenAndServeTLS(":443", keyPath+"/cert.pem", keyPath+"/key.pem", nil)
 	log.Println("Error while serving website:", err)
 	quitChan <- "web err"
 }
@@ -36,8 +61,7 @@ func webserver() {
 type sup struct{}
 
 func (s sup) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	fmt.Println(req.URL)
-	url, err := url.Parse("http://localhost:30000")
+	url, err := url.Parse("https://localhost:30000")
 	if err != nil {
 		fmt.Println(err)
 		http.FileServer(http.Dir(flag.Arg(0))).ServeHTTP(writer, req)

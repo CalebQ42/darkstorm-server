@@ -41,13 +41,6 @@ func webserver() {
 		return
 	}
 	tlsConf.Certificates = append(tlsConf.Certificates, cert)
-	cert, err = tls.LoadX509KeyPair(keyPath+"/foundrycert.pem", keyPath+"/foundrykey.pem")
-	if err != nil {
-		log.Println("Error while serving website:", err)
-		quitChan <- "web err"
-		return
-	}
-	tlsConf.Certificates = append(tlsConf.Certificates, cert)
 	serve := http.Server{
 		Addr:      ":443",
 		TLSConfig: tlsConf,

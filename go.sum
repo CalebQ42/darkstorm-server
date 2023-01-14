@@ -1,4 +1,2 @@
 github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39 h1:wAEqazqaAqb7wwijTl14KruBl7cvYytD3SkhXT9v5zs=
 github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39/go.mod h1:zK6NTEHRcxPf9N4gcm0WXvE8RpsJfg/a8hMSW6dAQ0c=
-github.com/cssivision/reverseproxy v0.0.1 h1:IvhNE3XITZOWFhON2faKbrDeGpqa+yfessLQKSSt15U=
-github.com/cssivision/reverseproxy v0.0.1/go.mod h1:+QTeWrlVNQDAiB3pnaecTCk5rh1sS3cJltUl/+L2APg=

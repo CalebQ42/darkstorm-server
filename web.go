@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"path/filepath"
-
-	"github.com/gofiber/fiber/v2"
+	"os"
+	"path"
+	"strings"
 )
 
 func webserver() {
@@ -26,17 +26,9 @@ func webserver() {
 		quitChan <- "web arg"
 		return
 	}
-	go func() {
-		app := fiber.New()
-		app.Static("/", path)
-		app.Static("/files", filepath.Join(path, "files"), fiber.Static{
-			Browse: true,
-		})
-		app.Static("/SWAssistant", filepath.Join(path, "SWAssistant"))
-		err := app.ListenTLS(":443", filepath.Join(keyPath, "cert.pem"), filepath.Join(keyPath, "key.pem"))
-		log.Println("Error while serving website:", err)
-		quitChan <- "web err"
-	}()
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	http.Handle("/SWAssistant/", swaHandler{})
+	http.Handle("/", http.FileServer(http.Dir(path)))
 	http.Handle("rpg.darkstorm.tech/", sup{})
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	tlsConf := &tls.Config{
@@ -69,4 +61,15 @@ func (s sup) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	}
 	rvProx := httputil.NewSingleHostReverseProxy(url)
 	rvProx.ServeHTTP(writer, req)
+}
+
+type swaHandler struct{}
+
+func (s swaHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	if _, err := os.Open(path.Join(flag.Arg(0) + req.URL.EscapedPath())); strings.Contains(req.URL.EscapedPath(), "#") || err == nil {
+		http.FileServer(http.Dir(flag.Arg(0))).ServeHTTP(writer, req)
+	} else {
+		http.Redirect(writer, req, "https://darkstorm.tech/SWAssistant/#"+strings.TrimPrefix(req.URL.EscapedPath(), "/SWAssistant"), http.StatusFound)
+		// log.Println("https://darkstorm.tech/SWAssistant/#" + strings.TrimPrefix(req.URL.EscapedPath(), "/SWAssistant"))
+	}
 }

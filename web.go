@@ -35,13 +35,13 @@ func webserver(mongoStr string) {
 		client, err := mongo.NewClient(options.Client().ApplyURI(mongoStr))
 		if err != nil {
 			log.Println("Issues connecting to mongo:", err)
-			quitChan <- "web arg"
+			quitChan <- "web err"
 			return
 		}
 		err = client.Connect(context.TODO())
 		if err != nil {
 			log.Println("Issues connecting to mongo:", err)
-			quitChan <- "web arg"
+			quitChan <- "web err"
 			return
 		}
 		stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")))
@@ -84,26 +84,20 @@ func webserver(mongoStr string) {
 		})
 		http.Handle("api.darkstorm.tech/", stupid)
 	}
+	url, err := url.Parse("https://localhost:30000")
+	if err != nil {
+		log.Println("Can't parse foundry url:", err)
+		quitChan <- "web err"
+		return
+	}
 	http.Handle("/", http.FileServer(http.Dir(path)))
 	http.Handle("/SWAssistant/", swaHandler{})
 	http.Handle("/CDR/", cdrHandler{})
-	http.Handle("rpg.darkstorm.tech/", sup{})
+	http.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	err := http.ListenAndServeTLS(":443", keyPath+"/fullchain.pem", keyPath+"/key.pem", nil)
+	err = http.ListenAndServeTLS(":443", keyPath+"/fullchain.pem", keyPath+"/key.pem", nil)
 	log.Println("Error while serving website:", err)
 	quitChan <- "web err"
-}
-
-type sup struct{}
-
-func (s sup) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	url, err := url.Parse("https://localhost:30000")
-	if err != nil {
-		log.Println(err)
-		http.FileServer(http.Dir(flag.Arg(0))).ServeHTTP(writer, req)
-	}
-	rvProx := httputil.NewSingleHostReverseProxy(url)
-	rvProx.ServeHTTP(writer, req)
 }
 
 type swaHandler struct{}

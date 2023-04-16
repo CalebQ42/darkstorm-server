@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -90,7 +89,7 @@ func webserver(mongoStr string) {
 	http.Handle("/CDR/", cdrHandler{})
 	http.Handle("rpg.darkstorm.tech/", sup{})
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	err := http.ListenAndServeTLS(":443", keyPath+"/cert.pem", keyPath+"/key.pem", nil)
+	err := http.ListenAndServeTLS(":443", keyPath+"/fullchain.pem", keyPath+"/key.pem", nil)
 	log.Println("Error while serving website:", err)
 	quitChan <- "web err"
 }
@@ -100,7 +99,7 @@ type sup struct{}
 func (s sup) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
 	url, err := url.Parse("https://localhost:30000")
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		http.FileServer(http.Dir(flag.Arg(0))).ServeHTTP(writer, req)
 	}
 	rvProx := httputil.NewSingleHostReverseProxy(url)

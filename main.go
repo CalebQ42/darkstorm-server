@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"time"
 )
@@ -8,8 +9,10 @@ import (
 var quitChan chan string = make(chan string)
 
 func main() {
+	mongoStr := flag.String("mongo", "", "MongoDB connection string for APIs")
+	flag.Parse()
 	go linker()
-	go webserver()
+	go webserver(*mongoStr)
 	for failure := <-quitChan; ; failure = <-quitChan {
 		switch failure {
 		case "tcp conf":
@@ -19,7 +22,7 @@ func main() {
 		case "web arg":
 			continue
 		case "web err":
-			go websiteRestart()
+			go websiteRestart(*mongoStr)
 		}
 	}
 }
@@ -31,9 +34,9 @@ func tcpLinkerRestart() {
 	linker()
 }
 
-func websiteRestart() {
+func websiteRestart(mongoStr string) {
 	log.Println("Website failed. Restarting in 5 seconds...")
 	time.Sleep(5 * time.Second)
 	log.Println("Restarting website")
-	webserver()
+	webserver(mongoStr)
 }

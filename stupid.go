@@ -67,6 +67,7 @@ func setupStupid(keyPath, mongoStr string) error {
 	if users {
 		stupid.EnableUserAuth(db.NewMongoTable(client.Database("stupid").Collection("keys")), pub, priv)
 	}
+	stupid.SetHeaderValues(map[string]string{"Access-Control-Allow-Origin": "https://darkstorm.tech"})
 	http.Handle("api.darkstorm.tech/", stupid)
 	return nil
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -25,29 +26,17 @@ func setupStupid(keyPath, mongoStr string) error {
 		log.Println("Issues connecting to mongo:", err)
 		return err
 	}
-	swApp := &stupid.App{
-		Logs:    db.NewMongoTable(client.Database("swassistant").Collection("log")),
-		Crashes: db.NewMongoTable(client.Database("swassistant").Collection("crash")),
-	}
-	cdrApp := &stupid.App{
-		Logs:    db.NewMongoTable(client.Database("cdr").Collection("log")),
-		Crashes: db.NewMongoTable(client.Database("cdr").Collection("crash")),
-	}
-	websiteApp := &stupid.App{
-		Logs:    db.NewMongoTable(client.Database("darkstormtech").Collection("log")),
-		Crashes: db.NewMongoTable(client.Database("darkstormtech").Collection("crash")),
-		Extension: func(r *stupid.Request) bool {
-			return websiteRequest(*client.Database("darkstormtech"), r)
-		},
-	}
-	stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")), func(app string) *stupid.App {
+	swApp := NewDefaultApp("swassistant", client)
+	cdrApp := NewDefaultApp("cdr", client)
+	webApp := NewDarkstormtech(client)
+	stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")), func(app string) stupid.App {
 		switch app {
 		case "swassistant":
 			return swApp
 		case "cdr":
 			return cdrApp
 		case "darkstormtech":
-			return websiteApp
+			return webApp
 		}
 		return nil
 	})
@@ -82,37 +71,69 @@ func setupStupid(keyPath, mongoStr string) error {
 	return nil
 }
 
-type page struct {
-	Page     string
-	Contents string
+type defaultApp struct {
+	d *mongo.Database
 }
 
-func websiteRequest(d mongo.Database, r *stupid.Request) bool {
-	if len(r.Path) > 0 {
-		r.Resp.WriteHeader(http.StatusBadRequest)
+func NewDefaultApp(name string, c *mongo.Client) *defaultApp {
+	return &defaultApp{
+		d: c.Database(name),
+	}
+}
+
+func (d *defaultApp) Logs() db.Table {
+	return db.NewMongoTable(d.d.Collection("logs"))
+}
+
+func (d *defaultApp) Crashes() db.CrashTable {
+	return db.NewMongoTable(d.d.Collection("crashes"))
+}
+
+func (d *defaultApp) Extension(*stupid.Request) bool {
+	return false
+}
+
+type darkstormtech struct {
+	*defaultApp
+}
+
+func NewDarkstormtech(c *mongo.Client) *darkstormtech {
+	return &darkstormtech{
+		defaultApp: NewDefaultApp("darkstormtech", c),
+	}
+}
+
+func (d *darkstormtech) Extension(r *stupid.Request) bool {
+	if len(r.Path) != 2 {
+		return false
+	}
+	if r.Path[0] != "page" {
+		return false
+	}
+	res := d.d.Collection("pages").FindOne(context.TODO(), bson.M{"page": r.Path[1]})
+	if res.Err() == mongo.ErrNoDocuments {
+		r.Resp.WriteHeader(http.StatusNotFound)
+		return true
+	} else if res.Err() != nil {
+		log.Println("Error while finding darkstorm.tech page:", res.Err())
+		r.Resp.WriteHeader(http.StatusInternalServerError)
 		return true
 	}
-	if pag, ok := r.Query["page"]; ok {
-		res := d.Collection("pages").FindOne(context.TODO(), bson.M{"page": pag})
-		if res.Err() == mongo.ErrNoDocuments {
-			r.Resp.WriteHeader(http.StatusNotFound)
-			return true
-		}
-		var p page
-		err := res.Decode(&p)
-		if err != nil {
-			r.Resp.WriteHeader(http.StatusInternalServerError)
-			log.Print("page decode:", err)
-			return true
-		}
-		_, err = r.Resp.Write([]byte(p.Contents))
-		if err != nil {
-			r.Resp.WriteHeader(http.StatusInternalServerError)
-			log.Print("content send:", err)
-			return true
-		}
+	darkstormPage := struct {
+		Content string
+	}{}
+	err := res.Decode(&darkstormPage)
+	if err != nil {
+		log.Println("Error while decoding darkstorm.tech page:", err)
+		r.Resp.WriteHeader(http.StatusInternalServerError)
 		return true
 	}
-	r.Resp.WriteHeader(http.StatusBadRequest)
+	fmt.Println(darkstormPage)
+	_, err = r.Resp.Write([]byte(darkstormPage.Content))
+	if err != nil {
+		log.Println("Error while sending darkstorm.tech page:", err)
+		r.Resp.WriteHeader(http.StatusInternalServerError)
+		return true
+	}
 	return true
 }

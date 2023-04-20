@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"flag"
-	"io"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -12,11 +11,6 @@ import (
 	"os"
 	"path"
 	"strings"
-
-	"github.com/CalebQ42/stupid-backend"
-	"github.com/CalebQ42/stupid-backend/pkg/db"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func webserver(mongoStr string) {
@@ -31,58 +25,13 @@ func webserver(mongoStr string) {
 		quitChan <- "web arg"
 		return
 	}
+	var err error
 	if mongoStr != "" {
-		client, err := mongo.NewClient(options.Client().ApplyURI(mongoStr))
+		err = setupStupid(keyPath, mongoStr)
 		if err != nil {
-			log.Println("Issues connecting to mongo:", err)
 			quitChan <- "web err"
 			return
 		}
-		err = client.Connect(context.TODO())
-		if err != nil {
-			log.Println("Issues connecting to mongo:", err)
-			quitChan <- "web err"
-			return
-		}
-		stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")))
-		users := true
-		var pub, priv []byte
-		stupidPubFil, err := os.Open(keyPath + "/stupid-pub.key")
-		if err != nil {
-			log.Println("Disabling API users:", err)
-			users = false
-		} else {
-			pub, err = io.ReadAll(stupidPubFil)
-			if err != nil {
-				log.Println("Disabling API users:", err)
-				users = false
-			}
-		}
-		stupidPrivFil, err := os.Open(keyPath + "/stupid-pub.key")
-		if err != nil {
-			log.Println("Disabling API users:", err)
-			users = false
-		} else {
-			priv, err = io.ReadAll(stupidPrivFil)
-			if err != nil {
-				log.Println("Disabling API users:", err)
-				users = false
-			}
-		}
-		if users {
-			stupid.EnableUserAuth(db.NewMongoTable(client.Database("stupid").Collection("keys")), pub, priv)
-		}
-		stupid.SetApps(map[string]db.App{
-			"swassistant": {
-				Logs:    db.NewMongoTable(client.Database("swassistant").Collection("log")),
-				Crashes: db.NewMongoTable(client.Database("swassistant").Collection("crash")),
-			},
-			"cdr": {
-				Logs:    db.NewMongoTable(client.Database("cdr").Collection("log")),
-				Crashes: db.NewMongoTable(client.Database("cdr").Collection("crash")),
-			},
-		})
-		http.Handle("api.darkstorm.tech/", stupid)
 	}
 	url, err := url.Parse("https://localhost:30000")
 	if err != nil {
@@ -90,9 +39,17 @@ func webserver(mongoStr string) {
 		quitChan <- "web err"
 		return
 	}
-	http.Handle("/", http.FileServer(http.Dir(path)))
-	http.Handle("/SWAssistant/", swaHandler{})
-	http.Handle("/CDR/", cdrHandler{})
+	// http.Handle("/", http.FileServer(http.Dir(path)))
+	mainHandle := &fileOrIndexHandler{
+		baseFolder: path,
+		appFolders: []string{
+			"SWAssistant",
+			"CDR",
+		},
+	}
+	http.Handle("/", mainHandle)
+	// http.Handle("/SWAssistant/", swaHandler{})
+	// http.Handle("/CDR/", cdrHandler{})
 	http.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	err = http.ListenAndServeTLS(":443", keyPath+"/fullchain.pem", keyPath+"/key.pem", nil)
@@ -100,24 +57,80 @@ func webserver(mongoStr string) {
 	quitChan <- "web err"
 }
 
-type swaHandler struct{}
-
-func (swaHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	if _, err := os.Open(path.Join(flag.Arg(0) + req.URL.EscapedPath())); strings.Contains(req.URL.EscapedPath(), "#") || err == nil {
-		http.FileServer(http.Dir(flag.Arg(0))).ServeHTTP(writer, req)
-	} else {
-		http.Redirect(writer, req, "https://darkstorm.tech/SWAssistant/#"+strings.TrimPrefix(req.URL.EscapedPath(), "/SWAssistant"), http.StatusFound)
-		// log.Println("https://darkstorm.tech/SWAssistant/#" + strings.TrimPrefix(req.URL.EscapedPath(), "/SWAssistant"))
-	}
+type fileOrIndexHandler struct {
+	baseFolder string
+	appFolders []string
 }
 
-type cdrHandler struct{}
-
-func (cdrHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	if _, err := os.Open(path.Join(flag.Arg(0) + req.URL.EscapedPath())); strings.Contains(req.URL.EscapedPath(), "#") || err == nil {
-		http.FileServer(http.Dir(flag.Arg(0))).ServeHTTP(writer, req)
-	} else {
-		http.Redirect(writer, req, "https://darkstorm.tech/CDR/#"+strings.TrimPrefix(req.URL.EscapedPath(), "/CDR"), http.StatusFound)
-		// log.Println("https://darkstorm.tech/SWAssistant/#" + strings.TrimPrefix(req.URL.EscapedPath(), "/SWAssistant"))
+func (f *fileOrIndexHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	reqPath := strings.Split(strings.TrimPrefix(path.Clean(req.URL.Path), "/"), "/")
+	if len(reqPath) == 0 {
+		reqPath = []string{"index.html"}
 	}
+	fils, err := os.ReadDir(f.baseFolder)
+	if err != nil {
+		if os.IsNotExist(err) {
+			writer.WriteHeader(http.StatusNotFound)
+		} else {
+			log.Println("Error while ReadDir:", err)
+			writer.WriteHeader(http.StatusInternalServerError)
+		}
+		return
+	}
+	filename := path.Clean(f.baseFolder)
+	var found bool
+outer:
+	for pathI := 0; pathI < len(reqPath); pathI++ {
+		found = false
+		for filI := range fils {
+			if strings.EqualFold(strings.ToLower(fils[filI].Name()), reqPath[pathI]) {
+				found = true
+				filename = path.Join(filename, fils[filI].Name())
+				if pathI == len(reqPath)-1 {
+					if fils[filI].IsDir() {
+						reqPath = append(reqPath, "index.html")
+					}
+					break
+				} else if !fils[filI].IsDir() {
+					break outer
+				} else {
+					fils, err = os.ReadDir(filename)
+					if err != nil {
+						log.Println("Error while ReadDir:", err)
+						writer.WriteHeader(http.StatusInternalServerError)
+						return
+					}
+				}
+				break
+			}
+		}
+		if !found {
+			break
+		}
+	}
+	if !found {
+		for _, a := range f.appFolders {
+			if strings.EqualFold(reqPath[0], a) {
+				http.ServeFile(writer, req, path.Join(f.baseFolder, a, "index.html"))
+				return
+			}
+		}
+	}
+	fil, err := os.Open(filename)
+	if err != nil {
+		writer.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	st, _ := fil.Stat()
+	if st.IsDir() {
+		var subFil *os.File
+		subFil, err = os.Open(path.Join(filename, "index.html"))
+		if os.IsNotExist(err) {
+			fmt.Println("file server for", filename)
+			http.FileServer(http.Dir(filename)).ServeHTTP(writer, req)
+			return
+		}
+		fil = subFil
+	}
+	http.ServeFile(writer, req, fil.Name())
 }

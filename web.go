@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/tls"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -62,75 +61,25 @@ type fileOrIndexHandler struct {
 	appFolders []string
 }
 
-func (f *fileOrIndexHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
-	reqPath := strings.Split(strings.TrimPrefix(path.Clean(req.URL.Path), "/"), "/")
-	if len(reqPath) == 0 {
-		reqPath = []string{"index.html"}
-	}
-	fils, err := os.ReadDir(f.baseFolder)
-	if err != nil {
-		if os.IsNotExist(err) {
-			writer.WriteHeader(http.StatusNotFound)
-		} else {
-			log.Println("Error while ReadDir:", err)
-			writer.WriteHeader(http.StatusInternalServerError)
-		}
+func (f *fileOrIndexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	reqPath := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
+	if reqPath == "" || reqPath == "index.html" {
+		http.ServeFile(w, r, path.Join(f.baseFolder, "index.html"))
 		return
 	}
-	filename := path.Clean(f.baseFolder)
-	var found bool
-outer:
-	for pathI := 0; pathI < len(reqPath); pathI++ {
-		found = false
-		for filI := range fils {
-			if strings.EqualFold(strings.ToLower(fils[filI].Name()), reqPath[pathI]) {
-				found = true
-				filename = path.Join(filename, fils[filI].Name())
-				if pathI == len(reqPath)-1 {
-					if fils[filI].IsDir() {
-						reqPath = append(reqPath, "index.html")
-					}
-					break
-				} else if !fils[filI].IsDir() {
-					break outer
-				} else {
-					fils, err = os.ReadDir(filename)
-					if err != nil {
-						log.Println("Error while ReadDir:", err)
-						writer.WriteHeader(http.StatusInternalServerError)
-						return
-					}
-				}
-				break
-			}
-		}
-		if !found {
-			break
-		}
-	}
-	if !found {
-		for _, a := range f.appFolders {
-			if strings.EqualFold(reqPath[0], a) {
-				http.ServeFile(writer, req, path.Join(f.baseFolder, a, "index.html"))
-				return
-			}
-		}
-	}
-	fil, err := os.Open(filename)
-	if err != nil {
-		writer.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	st, _ := fil.Stat()
-	if st.IsDir() {
-		var subFil *os.File
-		subFil, err = os.Open(path.Join(filename, "index.html"))
-		if os.IsNotExist(err) {
-			fmt.Println("file server for", filename)
-			http.FileServer(http.Dir(filename)).ServeHTTP(writer, req)
+	reqPath = path.Join(f.baseFolder, reqPath)
+	if fil, err := os.Open(reqPath); err == nil {
+		inf, _ := fil.Stat()
+		if !inf.IsDir() {
+			http.ServeFile(w, r, reqPath)
 			return
 		}
-		fil = subFil
 	}
-	http.ServeFile(writer, req, fil.Name())
+	for _, a := range f.appFolders {
+		if strings.HasPrefix(reqPath, path.Join(f.baseFolder, a)) {
+			http.ServeFile(w, r, path.Join(f.baseFolder, a, "index.html"))
+			return
+		}
+	}
+	http.ServeFile(w, r, path.Join(f.baseFolder, "index.html"))
 }

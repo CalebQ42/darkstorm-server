@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"flag"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
+	"github.com/CalebQ42/darkstorm-server/internal/darkstormtech"
 	"github.com/CalebQ42/stupid-backend"
 	"github.com/CalebQ42/stupid-backend/pkg/db"
 	"github.com/CalebQ42/stupid-backend/pkg/defaultapp"
@@ -28,7 +31,7 @@ func setupStupid(keyPath, mongoStr string) error {
 	stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")), map[string]stupid.App{
 		"swassistant":   defaultapp.NewDefaultApp(client.Database("swassistant")),
 		"cdr":           defaultapp.NewDefaultApp(client.Database("cdr")),
-		"darkstormtech": defaultapp.NewUnauthorizedDataApp(client.Database("darkstormtech")),
+		"darkstormtech": darkstormtech.NewDarkstormTech(client, filepath.Join(flag.Arg(0), "files")),
 	})
 	users := true
 	var pub, priv []byte
@@ -57,7 +60,7 @@ func setupStupid(keyPath, mongoStr string) error {
 	if users {
 		stupid.EnableUserAuth(db.NewMongoTable(client.Database("stupid").Collection("keys")), pub, priv)
 	}
-	stupid.SetHeaderValues(map[string]string{"Access-Control-Allow-Origin": "https://darkstorm.tech"})
+	stupid.SetHeaderValues(map[string]string{"Access-Control-Allow-Origin": "*"})
 	http.Handle("api.darkstorm.tech/", stupid)
 	return nil
 }

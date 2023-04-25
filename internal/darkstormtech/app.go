@@ -140,7 +140,7 @@ func (d *DarkstormTech) handleResume(req *stupid.Request) bool {
 	out += "<option value='Java'" + selectedString(lang == "Java") + ">Java</option>"
 	out += "</select></p>"
 	for _, p := range projects {
-		out += "<h2 style='margin-bottom:10px'>" + p.ID + "</h2>"
+		out += "<h1 style='margin-bottom:10px'>" + p.ID + "</h1>"
 		out += "<p><a href='" + p.Repository + "'>" + p.Repository + "</a></p>"
 		for _, l := range p.Language {
 			lang := l.Language

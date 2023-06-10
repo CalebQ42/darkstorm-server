@@ -38,8 +38,8 @@ func (d *DarkstormTech) Extension(req *stupid.Request) bool {
 	}
 	if req.Path[1] == "files" {
 		return d.handleFiles(req)
-	} else if req.Path[1] == "resume" {
-		return d.handleResume(req)
+	} else if req.Path[1] == "portfolio" {
+		return d.handlePortfolio(req)
 	}
 	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[1:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0, "content": 1}))
 	if res.Err() == mongo.ErrNoDocuments {
@@ -113,7 +113,7 @@ func selectedString(selected bool) string {
 	return " selected"
 }
 
-func (d *DarkstormTech) handleResume(req *stupid.Request) bool {
+func (d *DarkstormTech) handlePortfolio(req *stupid.Request) bool {
 	filter := bson.M{}
 	lang := ""
 	if l, ok := req.Query["lang"]; ok && len(l) == 1 && l[0] != "" {

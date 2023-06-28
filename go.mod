@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39
 	github.com/CalebQ42/stupid-backend v1.0.0
-	github.com/CalebQ42/swassistant-backend v0.1.0
+	github.com/CalebQ42/swassistant-backend v0.1.3
 	go.mongodb.org/mongo-driver v1.11.7
 )
 

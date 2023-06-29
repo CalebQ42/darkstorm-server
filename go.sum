@@ -2,8 +2,8 @@ github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39 h1:wAEqazqaAqb7w
 github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39/go.mod h1:zK6NTEHRcxPf9N4gcm0WXvE8RpsJfg/a8hMSW6dAQ0c=
 github.com/CalebQ42/stupid-backend v1.0.0 h1:+cZrNcvdPHhrh1Fc/mYvsUaCzSRvDFf2p8T38gzZF7Q=
 github.com/CalebQ42/stupid-backend v1.0.0/go.mod h1:NoawmDm79oXXxLjbVAmr5m/WIAOnRbiRf7a3tzA6GrA=
-github.com/CalebQ42/swassistant-backend v0.1.3 h1:8Dhjnt2jzNv5U60Dl1kAXEuE6sJXRc3qUehEB/vZ+Hk=
-github.com/CalebQ42/swassistant-backend v0.1.3/go.mod h1:gpAbuc32KvDau4J7pERnim989YTT0QvhFJeral50GpM=
+github.com/CalebQ42/swassistant-backend v0.1.4 h1:YwiI93W2NFMzz7pJ34F/qVWl61fzcUi4aWRxRNaM8go=
+github.com/CalebQ42/swassistant-backend v0.1.4/go.mod h1:gpAbuc32KvDau4J7pERnim989YTT0QvhFJeral50GpM=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

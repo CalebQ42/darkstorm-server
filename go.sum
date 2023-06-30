@@ -4,6 +4,8 @@ github.com/CalebQ42/stupid-backend v1.0.0 h1:+cZrNcvdPHhrh1Fc/mYvsUaCzSRvDFf2p8T
 github.com/CalebQ42/stupid-backend v1.0.0/go.mod h1:NoawmDm79oXXxLjbVAmr5m/WIAOnRbiRf7a3tzA6GrA=
 github.com/CalebQ42/swassistant-backend v0.1.4 h1:YwiI93W2NFMzz7pJ34F/qVWl61fzcUi4aWRxRNaM8go=
 github.com/CalebQ42/swassistant-backend v0.1.4/go.mod h1:gpAbuc32KvDau4J7pERnim989YTT0QvhFJeral50GpM=
+github.com/CalebQ42/swassistant-backend v0.1.5 h1:0wp/5iRWBeaf3w2uzCfN0Dz1t7Fq1NB9sELQ/Pr/y7U=
+github.com/CalebQ42/swassistant-backend v0.1.5/go.mod h1:gpAbuc32KvDau4J7pERnim989YTT0QvhFJeral50GpM=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

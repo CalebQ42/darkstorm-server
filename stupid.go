@@ -33,7 +33,7 @@ func setupStupid(keyPath, mongoStr string) error {
 		"swassistant":   swassistantbackend.NewSWBackend(client),
 		"cdr":           defaultapp.NewDefaultApp(client.Database("cdr")),
 		"darkstormtech": darkstormtech.NewDarkstormTech(client, filepath.Join(flag.Arg(0), "files")),
-	})
+	}, "https://darkstorm.tech")
 	users := true
 	var pub, priv []byte
 	stupidPubFil, err := os.Open(keyPath + "/stupid-pub.key")
@@ -61,7 +61,6 @@ func setupStupid(keyPath, mongoStr string) error {
 	if users {
 		stupid.EnableUserAuth(db.NewMongoTable(client.Database("stupid").Collection("keys")), pub, priv)
 	}
-	stupid.SetHeaderValues(map[string]string{"Access-Control-Allow-Origin": "*"})
 	http.Handle("api.darkstorm.tech/", stupid)
 	return nil
 }

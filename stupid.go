@@ -19,12 +19,7 @@ import (
 )
 
 func setupStupid(keyPath, mongoStr string) error {
-	client, err := mongo.NewClient(options.Client().ApplyURI(mongoStr))
-	if err != nil {
-		log.Println("Issues connecting to mongo:", err)
-		return err
-	}
-	err = client.Connect(context.TODO())
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoStr))
 	if err != nil {
 		log.Println("Issues connecting to mongo:", err)
 		return err

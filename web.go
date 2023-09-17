@@ -73,6 +73,9 @@ func (f *fileOrIndexHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !inf.IsDir() {
 			http.ServeFile(w, r, reqPath)
 			return
+		} else if _, err = os.Open(path.Join(reqPath, "index.html")); err == nil {
+			http.ServeFile(w, r, path.Join(reqPath, "index.html"))
+			return
 		}
 	}
 	for _, a := range f.appFolders {

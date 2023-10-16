@@ -4,7 +4,7 @@ go 1.21.3
 
 require (
 	github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39
-	github.com/CalebQ42/cdr-backend v0.0.3
+	github.com/CalebQ42/cdr-backend v0.0.4
 	github.com/CalebQ42/stupid-backend v1.1.1
 	github.com/CalebQ42/swassistant-backend v0.1.9
 	go.mongodb.org/mongo-driver v1.12.1

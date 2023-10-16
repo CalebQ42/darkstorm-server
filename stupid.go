@@ -9,10 +9,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/CalebQ42/cdr-backend"
 	"github.com/CalebQ42/darkstorm-server/internal/darkstormtech"
 	"github.com/CalebQ42/stupid-backend"
 	"github.com/CalebQ42/stupid-backend/pkg/db"
-	"github.com/CalebQ42/stupid-backend/pkg/defaultapp"
 	swassistantbackend "github.com/CalebQ42/swassistant-backend"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -26,7 +26,7 @@ func setupStupid(keyPath, mongoStr string) error {
 	}
 	stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")), map[string]stupid.App{
 		"swassistant":   swassistantbackend.NewSWBackend(client),
-		"cdr":           defaultapp.NewDefaultApp(client.Database("cdr")),
+		"cdr":           cdr.NewBackend(client),
 		"darkstormtech": darkstormtech.NewDarkstormTech(client, filepath.Join(flag.Arg(0), "files")),
 	}, "https://darkstorm.tech")
 	users := true

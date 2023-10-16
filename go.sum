@@ -1,7 +1,7 @@
 github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39 h1:wAEqazqaAqb7wwijTl14KruBl7cvYytD3SkhXT9v5zs=
 github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39/go.mod h1:zK6NTEHRcxPf9N4gcm0WXvE8RpsJfg/a8hMSW6dAQ0c=
-github.com/CalebQ42/cdr-backend v0.0.2 h1:qmhGCPrsiyWvNs86jUSSNhbpdrIzexIVdqn5C5mceCw=
-github.com/CalebQ42/cdr-backend v0.0.2/go.mod h1:5CZF1xhj8b86+uqsDAz8nRXD29ch753WV0q03mzMDxY=
+github.com/CalebQ42/cdr-backend v0.0.3 h1:zNy5yiVofjCJDQMyEFbVbJVfClXKqRgjlHVGegtMuy0=
+github.com/CalebQ42/cdr-backend v0.0.3/go.mod h1:FmQiJWYTjlRhVYOFeVgERGpMmIB2VVJ7JBgUqMNaczw=
 github.com/CalebQ42/stupid-backend v1.1.1 h1:RyfKD1i5hbmQWvOv/bZvsCHowTGo2VNzqJmZL6TXo74=
 github.com/CalebQ42/stupid-backend v1.1.1/go.mod h1:NoawmDm79oXXxLjbVAmr5m/WIAOnRbiRf7a3tzA6GrA=
 github.com/CalebQ42/swassistant-backend v0.1.9 h1:Baw43u0Be4RTzbGQU0Ztt/mw5yFf/MHKuxBnXf76fYs=

@@ -11,8 +11,8 @@ import (
 
 	"github.com/CalebQ42/cdr-backend"
 	"github.com/CalebQ42/darkstorm-server/internal/darkstormtech"
-	"github.com/CalebQ42/stupid-backend"
-	"github.com/CalebQ42/stupid-backend/pkg/db"
+	"github.com/CalebQ42/stupid-backend/v2"
+	"github.com/CalebQ42/stupid-backend/v2/db"
 	swassistantbackend "github.com/CalebQ42/swassistant-backend"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,7 +24,7 @@ func setupStupid(keyPath, mongoStr string) error {
 		log.Println("Issues connecting to mongo:", err)
 		return err
 	}
-	stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")), map[string]stupid.App{
+	stupid := stupid.NewStupidBackend(db.NewMongoTable(client.Database("stupid").Collection("keys")), map[string]any{
 		"swassistant":   swassistantbackend.NewSWBackend(client),
 		"cdr":           cdr.NewBackend(client),
 		"darkstormtech": darkstormtech.NewDarkstormTech(client, filepath.Join(flag.Arg(0), "files")),

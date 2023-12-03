@@ -6,42 +6,43 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/CalebQ42/stupid-backend"
-	"github.com/CalebQ42/stupid-backend/pkg/defaultapp"
+	"github.com/CalebQ42/stupid-backend/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type DarkstormTech struct {
-	*defaultapp.App
+	stupid.UnKeyedApp
+	DB          *mongo.Database
 	filesFolder string
 }
 
 func NewDarkstormTech(c *mongo.Client, filesFolder string) *DarkstormTech {
 	return &DarkstormTech{
-		App:         defaultapp.NewDefaultApp(c.Database("darkstormtech")),
+		DB:          c.Database("darkstormtech"),
 		filesFolder: filesFolder,
 	}
 }
 
-func (d *DarkstormTech) Extension(req *stupid.Request) bool {
-	if req.Path[0] != "page" {
+func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
+	if req.Path[1] != "page" {
 		return false
 	}
 	if len(req.Path) == 1 {
 		req.Resp.WriteHeader(http.StatusBadRequest)
 		return true
 	}
-	if req.Path[1] == "files" {
+	if req.Path[2] == "files" {
 		return d.handleFiles(req)
-	} else if req.Path[1] == "portfolio" {
+	} else if req.Path[2] == "portfolio" {
 		return d.handlePortfolio(req)
 	}
-	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[1:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0, "content": 1}))
+	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[2:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0, "content": 1}))
 	if res.Err() == mongo.ErrNoDocuments {
 		req.Resp.WriteHeader(http.StatusNotFound) //TODO: Give some sort of default page.
 		return true
@@ -68,7 +69,11 @@ func (d *DarkstormTech) Extension(req *stupid.Request) bool {
 }
 
 func (d *DarkstormTech) handleFiles(req *stupid.Request) bool {
-	fils, err := os.ReadDir(d.filesFolder)
+	foldPath := ""
+	if len(req.Path) > 3 {
+		foldPath = filepath.Join(req.Path[3:]...)
+	}
+	fils, err := os.ReadDir(filepath.Join(d.filesFolder, foldPath))
 	if err != nil {
 		log.Println("Error while getting files:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)

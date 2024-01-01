@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/CalebQ42/bbConvert"
 	"github.com/CalebQ42/stupid-backend/v2"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,12 +19,16 @@ import (
 
 type DarkstormTech struct {
 	stupid.UnKeyedApp
+	bb          *bbConvert.HTMLConverter
 	DB          *mongo.Database
 	filesFolder string
 }
 
 func NewDarkstormTech(c *mongo.Client, filesFolder string) *DarkstormTech {
+	bb := &bbConvert.HTMLConverter{}
+	bb.ImplementDefaults()
 	return &DarkstormTech{
+		bb:          bb,
 		DB:          c.Database("darkstormtech"),
 		filesFolder: filesFolder,
 	}
@@ -60,7 +65,7 @@ func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
 		req.Resp.WriteHeader(http.StatusInternalServerError)
 		return true
 	}
-	_, err = req.Resp.Write([]byte(pag.Content))
+	_, err = req.Resp.Write([]byte(d.bb.Convert(pag.Content)))
 	if err != nil {
 		log.Println("Error while writing response:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)

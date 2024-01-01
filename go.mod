@@ -1,6 +1,6 @@
 module github.com/CalebQ42/darkstorm-server
 
-go 1.21.4
+go 1.21.5
 
 require (
 	github.com/1lann/udp-forward v0.0.0-20191015034046-6b774a53ea39
@@ -8,6 +8,7 @@ require (
 	github.com/CalebQ42/stupid-backend/v2 v2.0.1
 	github.com/CalebQ42/swassistant-backend v0.2.0
 	go.mongodb.org/mongo-driver v1.13.0
+	github.com/CalebQ42/bbConvert v1.0.0
 )
 
 require (

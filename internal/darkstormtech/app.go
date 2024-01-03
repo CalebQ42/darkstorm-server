@@ -2,6 +2,7 @@ package darkstormtech
 
 import (
 	"context"
+	"encoding/json"
 	"io/fs"
 	"log"
 	"net/http"
@@ -34,22 +35,54 @@ func NewDarkstormTech(c *mongo.Client, filesFolder string) *DarkstormTech {
 	}
 }
 
+func (d *DarkstormTech) AlternateName() string {
+	return "page"
+}
+
+type pageOut struct {
+	Content string `json:"content"`
+	Title   string `json:"title"`
+	Favicon string `json:"favicon"`
+}
+
+func notFoundPage() pageOut {
+	return pageOut{
+		Content: "404 Page Not Found 😥",
+		Title:   "Darkstorm.Tech",
+		Favicon: "https://darkstorm.tech/favicon.png",
+	}
+}
+
+func (p pageOut) json() []byte {
+	out, _ := json.Marshal(p)
+	return out
+}
+
+func (p *pageOut) addDefaults() {
+	if p.Title == "" {
+		p.Title = "Darkstorm.Tech"
+	}
+	if p.Favicon == "" {
+		p.Favicon = "https://darkstorm.tech/favicon.png"
+	}
+}
+
 func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
-	if req.Path[1] != "page" {
+	if req.Path[0] != "page" {
 		return false
 	}
 	if len(req.Path) == 1 {
 		req.Resp.WriteHeader(http.StatusBadRequest)
 		return true
 	}
-	if req.Path[2] == "files" {
+	if req.Path[1] == "files" {
 		return d.handleFiles(req)
-	} else if req.Path[2] == "portfolio" {
+	} else if req.Path[1] == "portfolio" {
 		return d.handlePortfolio(req)
 	}
-	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[2:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0, "content": 1}))
+	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[1:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0}))
 	if res.Err() == mongo.ErrNoDocuments {
-		req.Resp.Write([]byte("Page not found 😥"))
+		req.Resp.Write(notFoundPage().json())
 		req.Resp.WriteHeader(http.StatusNotFound) //TODO: Give some sort of default page.
 		return true
 	} else if res.Err() != nil {
@@ -57,16 +90,16 @@ func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
 		req.Resp.WriteHeader(http.StatusInternalServerError)
 		return true
 	}
-	pag := struct { //TODO: Add favicon and title support.
-		Content string
-	}{}
+	var pag pageOut
 	err := res.Decode(&pag)
 	if err != nil {
 		log.Println("Error while decoding page:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)
 		return true
 	}
-	_, err = req.Resp.Write([]byte(d.bb.Convert(pag.Content)))
+	pag.Content = d.bb.Convert(pag.Content)
+	(&pag).addDefaults()
+	_, err = req.Resp.Write(pag.json())
 	if err != nil {
 		log.Println("Error while writing response:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)
@@ -76,8 +109,8 @@ func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
 
 func (d *DarkstormTech) handleFiles(req *stupid.Request) bool {
 	foldPath := ""
-	if len(req.Path) > 3 {
-		foldPath = filepath.Join(req.Path[3:]...)
+	if len(req.Path) > 1 {
+		foldPath = filepath.Join(req.Path[2:]...)
 	}
 	fils, err := os.ReadDir(filepath.Join(d.filesFolder, foldPath))
 	if err != nil {

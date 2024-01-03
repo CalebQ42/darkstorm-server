@@ -49,6 +49,7 @@ func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
 	}
 	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[2:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0, "content": 1}))
 	if res.Err() == mongo.ErrNoDocuments {
+		req.Resp.Write([]byte("Page not found 😥"))
 		req.Resp.WriteHeader(http.StatusNotFound) //TODO: Give some sort of default page.
 		return true
 	} else if res.Err() != nil {

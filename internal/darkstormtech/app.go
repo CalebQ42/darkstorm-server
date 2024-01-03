@@ -53,6 +53,17 @@ func notFoundPage() pageOut {
 	}
 }
 
+func pageWith(content string, title string) pageOut {
+	if title == "" {
+		title = "Darkstorm.Tech"
+	}
+	return pageOut{
+		Content: content,
+		Title:   title,
+		Favicon: "https://darkstorm.tech/favicon.png",
+	}
+}
+
 func (p pageOut) json() []byte {
 	out, _ := json.Marshal(p)
 	return out
@@ -132,7 +143,7 @@ func (d *DarkstormTech) handleFiles(req *stupid.Request) bool {
 		}
 		out += "<p><a href='https://darkstorm.tech/files/" + f.Name() + "'>" + f.Name() + "</a> " + inf.ModTime().Round(time.Minute).String() + "</p>\n"
 	}
-	_, err = req.Resp.Write([]byte(out))
+	_, err = req.Resp.Write(pageWith(out, "Files").json())
 	if err != nil {
 		log.Println("Error while writing output:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)
@@ -195,7 +206,7 @@ func (d *DarkstormTech) handlePortfolio(req *stupid.Request) bool {
 		}
 		out += "<p>" + p.Description + "</p>"
 	}
-	_, err = req.Resp.Write([]byte(out))
+	_, err = req.Resp.Write(pageWith(out, "Portfolio").json())
 	if err != nil {
 		log.Println("Error while writing output:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)

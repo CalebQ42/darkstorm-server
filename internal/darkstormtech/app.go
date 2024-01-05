@@ -3,11 +3,13 @@ package darkstormtech
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -86,15 +88,18 @@ func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
 		req.Resp.WriteHeader(http.StatusBadRequest)
 		return true
 	}
-	if req.Path[1] == "files" {
+	switch req.Path[1] {
+	case "blog":
+		return d.handleBlog(req)
+	case "files":
 		return d.handleFiles(req)
-	} else if req.Path[1] == "portfolio" {
+	case "portfolio":
 		return d.handlePortfolio(req)
 	}
 	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[1:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0}))
 	if res.Err() == mongo.ErrNoDocuments {
 		req.Resp.Write(notFoundPage().json())
-		req.Resp.WriteHeader(http.StatusNotFound) //TODO: Give some sort of default page.
+		req.Resp.WriteHeader(http.StatusNotFound)
 		return true
 	} else if res.Err() != nil {
 		log.Println("Error while getting page:", res.Err())
@@ -118,7 +123,103 @@ func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
 	return true
 }
 
+type blog struct {
+	ID      string `bson:"_id" json:"id"`
+	Title   string `bson:"title" json:"title"`
+	Content string `bson:"content" json:"content"`
+}
+
+type blogOut struct {
+	Content string `json:"content"`
+	Title   string `json:"title"`
+}
+
+func (b blogOut) json() []byte {
+	out, _ := json.Marshal(b)
+	return out
+}
+
+func (d *DarkstormTech) handleBlog(req *stupid.Request) bool {
+	if req.Method == http.MethodPost {
+		return d.addBlog(req)
+	} else if req.Method != http.MethodGet {
+		req.Resp.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+	var res *mongo.SingleResult
+	if len(req.Path) == 2 {
+		res = d.DB.Collection("blogs").FindOne(context.TODO(), bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1}))
+	} else {
+		res = d.DB.Collection("blogs").FindOne(context.TODO(), bson.M{"_id": req.Path[2]})
+	}
+	if res.Err() == mongo.ErrNoDocuments {
+		req.Resp.Write(notFoundPage().json())
+		req.Resp.WriteHeader(http.StatusNotFound)
+		return true
+	} else if res.Err() != nil {
+		log.Println("Error while getting blog:", res.Err())
+		req.Resp.WriteHeader(http.StatusInternalServerError)
+		return true
+	}
+	var b blogOut
+	err := res.Decode(&b)
+	if err != nil {
+		log.Println("Error while decoding blog:", err)
+		req.Resp.WriteHeader(http.StatusInternalServerError)
+		return true
+	}
+	b.Content = d.bb.Convert(b.Content)
+	_, err = req.Resp.Write(b.json())
+	if err != nil {
+		log.Println("Error while writing response:", err)
+		req.Resp.WriteHeader(http.StatusInternalServerError)
+	}
+	return true
+}
+
+func (d *DarkstormTech) addBlog(req *stupid.Request) bool {
+	if req.User == nil {
+		req.Resp.WriteHeader(http.StatusUnauthorized)
+		return true
+	}
+	//TODO: Check if user is admin
+	if req.Body == nil {
+		req.Resp.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+	bod, err := io.ReadAll(req.Body)
+	req.Body.Close()
+	if err != nil {
+		log.Println("Error while reading body:", err)
+		req.Resp.WriteHeader(http.StatusInternalServerError)
+		return true
+	}
+	if len(bod) == 0 {
+		req.Resp.WriteHeader(http.StatusBadRequest)
+		return true
+	}
+	var b blog
+	err = json.Unmarshal(bod, &b)
+	if err != nil {
+		log.Println("Error while unmarshalling body:", err)
+		req.Resp.WriteHeader(http.StatusInternalServerError)
+		return true
+	}
+	b.ID = strconv.Itoa(int(time.Now().Unix()))
+	_, err = d.DB.Collection("blogs").InsertOne(context.TODO(), b)
+	if err != nil {
+		log.Println("Error while inserting blog:", err)
+		req.Resp.WriteHeader(http.StatusInternalServerError)
+		return true
+	}
+	return true
+}
+
 func (d *DarkstormTech) handleFiles(req *stupid.Request) bool {
+	if req.Method != http.MethodGet {
+		req.Resp.WriteHeader(http.StatusBadRequest)
+		return true
+	}
 	foldPath := ""
 	if len(req.Path) > 1 {
 		foldPath = filepath.Join(req.Path[2:]...)
@@ -169,6 +270,10 @@ func selectedString(selected bool) string {
 }
 
 func (d *DarkstormTech) handlePortfolio(req *stupid.Request) bool {
+	if req.Method != http.MethodGet {
+		req.Resp.WriteHeader(http.StatusBadRequest)
+		return true
+	}
 	filter := bson.M{}
 	lang := ""
 	if l, ok := req.Query["lang"]; ok && len(l) == 1 && l[0] != "" {

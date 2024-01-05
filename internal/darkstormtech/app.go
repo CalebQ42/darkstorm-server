@@ -199,11 +199,10 @@ func (d *DarkstormTech) handleBlog(req *stupid.Request) bool {
 }
 
 func (d *DarkstormTech) addBlog(req *stupid.Request) bool {
-	if req.User == nil {
+	if req.User == nil || req.User.Role != "admin" {
 		req.Resp.WriteHeader(http.StatusUnauthorized)
 		return true
 	}
-	//TODO: Check if user is admin
 	if req.Body == nil {
 		req.Resp.WriteHeader(http.StatusBadRequest)
 		return true

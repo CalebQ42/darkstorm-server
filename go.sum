@@ -4,8 +4,8 @@ github.com/CalebQ42/bbConvert v1.0.0 h1:2WSAxVKhCCMReuU30r3ehLtL6m9aH8sY3wugp9yU
 github.com/CalebQ42/bbConvert v1.0.0/go.mod h1:QJevnlhzUdL3EJB5Lgqoi7rdgtzt/UEamn/QGNoVgkM=
 github.com/CalebQ42/cdr-backend v0.1.0 h1:9245aooAyLxAFO5gfXPgpqOHaYr6NAkMI75v2IlPOVA=
 github.com/CalebQ42/cdr-backend v0.1.0/go.mod h1:N7A+ia+4GDsDMZ3gb5IRZ6CY07gdFfJECtR9csKh5nI=
-github.com/CalebQ42/stupid-backend/v2 v2.0.3 h1:h6fDA3m1SXcqHebiKyX/VN6W1jGj5ebw/8qrsVY6WvU=
-github.com/CalebQ42/stupid-backend/v2 v2.0.3/go.mod h1:skBYIF77NzxYcqZ34V1eSD2/MIZCAGyyINWIkCBrpx8=
+github.com/CalebQ42/stupid-backend/v2 v2.0.4 h1:ph75UDj5JevTiGyJbKgZsH3xyZZAGmXqfwSR6gLWoYQ=
+github.com/CalebQ42/stupid-backend/v2 v2.0.4/go.mod h1:skBYIF77NzxYcqZ34V1eSD2/MIZCAGyyINWIkCBrpx8=
 github.com/CalebQ42/swassistant-backend v0.2.0 h1:pXUG7+uHP5/lHaqqD6Hc64hOjfPzCGO8TkOpvtDB238=
 github.com/CalebQ42/swassistant-backend v0.2.0/go.mod h1:m67UAzh552+puEc0LngTHzOL3b/Y2B19NzbaVdVeabI=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

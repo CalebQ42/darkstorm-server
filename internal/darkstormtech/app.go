@@ -95,6 +95,27 @@ func (d *DarkstormTech) HandleReqest(req *stupid.Request) bool {
 		return d.handleFiles(req)
 	case "portfolio":
 		return d.handlePortfolio(req)
+	case "default":
+		b, err := d.getBlog(req)
+		if err == mongo.ErrNoDocuments {
+			req.Resp.Write(notFoundPage().json())
+			req.Resp.WriteHeader(http.StatusNotFound)
+			return true
+		} else if err != nil {
+			log.Println("Error while getting blog:", err)
+			req.Resp.WriteHeader(http.StatusInternalServerError)
+			return true
+		}
+		out := pageOut{
+			Content: d.bb.Convert(b.Content),
+		}
+		(&out).addDefaults()
+		_, err = req.Resp.Write(out.json())
+		if err != nil {
+			log.Println("Error while writing response:", err)
+			req.Resp.WriteHeader(http.StatusInternalServerError)
+		}
+		return true
 	}
 	res := d.DB.Collection("pages").FindOne(context.TODO(), bson.M{"_id": strings.Join(req.Path[1:], "/")}, options.FindOne().SetProjection(bson.M{"_id": 0}))
 	if res.Err() == mongo.ErrNoDocuments {
@@ -129,14 +150,22 @@ type blog struct {
 	Content string `bson:"content" json:"content"`
 }
 
-type blogOut struct {
-	Content string `json:"content"`
-	Title   string `json:"title"`
-}
-
-func (b blogOut) json() []byte {
-	out, _ := json.Marshal(b)
-	return out
+func (d *DarkstormTech) getBlog(req *stupid.Request) (*blog, error) {
+	var res *mongo.SingleResult
+	if len(req.Path) == 2 {
+		res = d.DB.Collection("blog").FindOne(context.TODO(), bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1}))
+	} else {
+		res = d.DB.Collection("blog").FindOne(context.TODO(), bson.M{"_id": req.Path[2]})
+	}
+	if res.Err() != nil {
+		return nil, res.Err()
+	}
+	var b blog
+	err := res.Decode(&b)
+	if err != nil {
+		return nil, err
+	}
+	return &b, nil
 }
 
 func (d *DarkstormTech) handleBlog(req *stupid.Request) bool {
@@ -146,30 +175,22 @@ func (d *DarkstormTech) handleBlog(req *stupid.Request) bool {
 		req.Resp.WriteHeader(http.StatusBadRequest)
 		return true
 	}
-	var res *mongo.SingleResult
-	if len(req.Path) == 2 {
-		res = d.DB.Collection("blogs").FindOne(context.TODO(), bson.M{}, options.FindOne().SetSort(bson.M{"_id": -1}))
-	} else {
-		res = d.DB.Collection("blogs").FindOne(context.TODO(), bson.M{"_id": req.Path[2]})
-	}
-	if res.Err() == mongo.ErrNoDocuments {
+	b, err := d.getBlog(req)
+	if err == mongo.ErrNoDocuments {
 		req.Resp.Write(notFoundPage().json())
 		req.Resp.WriteHeader(http.StatusNotFound)
 		return true
-	} else if res.Err() != nil {
-		log.Println("Error while getting blog:", res.Err())
+	} else if err != nil {
+		log.Println("Error while getting blog:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)
 		return true
 	}
-	var b blogOut
-	err := res.Decode(&b)
-	if err != nil {
-		log.Println("Error while decoding blog:", err)
-		req.Resp.WriteHeader(http.StatusInternalServerError)
-		return true
+	out := pageOut{
+		Content: d.bb.Convert(b.Content),
+		Title:   b.Title,
 	}
-	b.Content = d.bb.Convert(b.Content)
-	_, err = req.Resp.Write(b.json())
+	(&out).addDefaults()
+	_, err = req.Resp.Write(out.json())
 	if err != nil {
 		log.Println("Error while writing response:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)
@@ -206,7 +227,7 @@ func (d *DarkstormTech) addBlog(req *stupid.Request) bool {
 		return true
 	}
 	b.ID = strconv.Itoa(int(time.Now().Unix()))
-	_, err = d.DB.Collection("blogs").InsertOne(context.TODO(), b)
+	_, err = d.DB.Collection("blog").InsertOne(context.TODO(), b)
 	if err != nil {
 		log.Println("Error while inserting blog:", err)
 		req.Resp.WriteHeader(http.StatusInternalServerError)

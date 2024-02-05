@@ -11,6 +11,7 @@ import (
 
 	"github.com/CalebQ42/cdr-backend"
 	"github.com/CalebQ42/darkstorm-server/internal/darkstormtech"
+	"github.com/CalebQ42/darkstorm-server/internal/flexmls"
 	"github.com/CalebQ42/stupid-backend/v2"
 	"github.com/CalebQ42/stupid-backend/v2/db"
 	swassistantbackend "github.com/CalebQ42/swassistant-backend"
@@ -28,6 +29,7 @@ func setupStupid(keyPath, mongoStr string) error {
 		"swassistant":   swassistantbackend.NewSWBackend(client),
 		"cdr":           cdr.NewBackend(client),
 		"darkstormtech": darkstormtech.NewDarkstormTech(client, filepath.Join(flag.Arg(0), "files")),
+		"flexmls":       flexmls.NewBackend(client),
 	}, "https://darkstorm.tech")
 	users := true
 	var pub, priv []byte

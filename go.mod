@@ -11,7 +11,10 @@ require (
 	go.mongodb.org/mongo-driver v1.13.1
 )
 
+require github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21 // indirect
+
 require (
+	github.com/emersion/go-smtp v0.20.2
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect

@@ -13,6 +13,7 @@ func main() {
 	flag.Parse()
 	go linker()
 	go webserver(*mongoStr)
+	go startSMTPServer()
 	for failure := <-quitChan; ; failure = <-quitChan {
 		switch failure {
 		case "tcp conf":
@@ -23,6 +24,11 @@ func main() {
 			continue
 		case "web err":
 			go websiteRestart(*mongoStr)
+		case "smtp arg":
+			continue
+		case "smtp err":
+			//TODO: restart smtp server
+			continue
 		}
 	}
 }

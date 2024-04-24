@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"io"
 	"log"
@@ -20,7 +21,17 @@ import (
 )
 
 func setupStupid(keyPath, mongoStr string) error {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(mongoStr))
+	tlsCert, err := tls.LoadX509KeyPair(keyPath+"/fullchain.pem", keyPath+"/key.pem")
+	if err != nil {
+		return err
+	}
+	client, err := mongo.Connect(
+		context.TODO(),
+		options.Client().ApplyURI(mongoStr),
+		options.Client().SetTLSConfig(&tls.Config{
+			Certificates: []tls.Certificate{tlsCert},
+		}),
+	)
 	if err != nil {
 		log.Println("Issues connecting to mongo:", err)
 		return err

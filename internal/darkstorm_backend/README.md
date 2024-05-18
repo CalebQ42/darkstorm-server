@@ -28,7 +28,11 @@ This is a purposefully "simple" application backend made specifically for _my_ a
   username: "username",
   password: "hashed password",
   salt: "password salt",
+  email: "email",
   passwordChange: 0, // unix timestamp of last password change
+  perm: {
+    appID: "user", // Optional. Apps should have a default permission level if thier appID is not in perm.
+  }
 }
 ```
 

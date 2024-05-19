@@ -15,8 +15,19 @@ This is a purposefully "simple" application backend made specifically for _my_ a
     user: true, // create and login users
     log: true, // log users
     crash: true, // crash reports
+    management: false, // managing
     // further permissions can be added as needed
   }
+}
+```
+
+### DB Log
+
+```json
+{
+  id: "UUID",
+  platform: "android",
+  Date: 20240519 // YYYYMMD
 }
 ```
 
@@ -88,6 +99,14 @@ If an error status code is returned then the body will be as follows.
 }
 ```
 
+### Log
+
+API Key must have the `log` permission.
+
+Request:
+
+> POST: /log
+
 ### Users
 
 > TODO: Add the ability to create users and log-in through third-parties (such as Google).
@@ -107,7 +126,7 @@ Request:
 ```json
 {
   username: "Username",
-  password: "Password", // Password must be 
+  password: "Password", // Allowed length: 12-128
   email: "Email",
 }
 ```
@@ -158,11 +177,15 @@ Return:
 
 ### Crash Report
 
-Crash reports require the `X-API-Key` header and the key must match the URL's appID and have the `crash` permission
+> TODO: Archive a crash to prevent it being reported again.
+
+#### Report
+
+API Key must have the `crash` permission.
 
 Request:
 
-> POST: /{appID}/crash
+> POST: /crash
 
 ```json
 {
@@ -172,3 +195,11 @@ Request:
   stack: "stacktrace"
 }
 ```
+
+#### Delete
+
+API Key must have the `management` permission.
+
+Request:
+
+> DELETE: /crash/{crashID}

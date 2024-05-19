@@ -8,8 +8,8 @@ This is a purposefully "simple" application backend made specifically for _my_ a
 
 ```json
 {
-  appName: "app name",
-  key: "API Key",
+  id: "API Key",
+  appID: "appID",
   death: -1, // unix timestamp when the key is no longer valid. -1 means there is not expected expiration (that can change in the future)
   perm: {
     user: true, // create and login users
@@ -21,6 +21,8 @@ This is a purposefully "simple" application backend made specifically for _my_ a
 ```
 
 ### User
+
+Users are stored per backend and not per app.
 
 ```json
 {
@@ -36,18 +38,46 @@ This is a purposefully "simple" application backend made specifically for _my_ a
 }
 ```
 
-## Standard Header
+### Crash Reports
 
-Any request might or might not need these values. These values can be authenticated via the `TODO` function.
+#### Individual Report
+
+```json
+{
+  count: 1, // We do not store duplicates. If a duplicate does occur
+  platform: "android",
+  error: "error",
+  stack: "stacktrace"
+}
+```
+
+#### Crashes
+
+```json
+{
+  id: "UUID",
+  error: "error",
+  firstLine: "first line of error",
+  individual: [
+    // Individual Crash Reports
+  ]
+}
+```
+
+## Requests
+
+### Standard Header
+
+Any request might or might not need these headers. These values can be authenticated via the `ParseHeader` function.
 
 ```json
 {
   X-API-Key: "{API Key}",
-  Authorization: "Bearer {JWT Token}"
+  Authorization: "Bearer {JWT Token}" // No built-in functions require a JWT Token, but may be required by specific implementations.
 }
 ```
 
-## Error Response
+### Error Response
 
 If an error status code is returned then the body will be as follows.
 
@@ -58,23 +88,26 @@ If an error status code is returned then the body will be as follows.
 }
 ```
 
-## Users
+### Users
 
 > TODO: Add the ability to create users and log-in through third-parties (such as Google).
 
 All requsests pertaining to users requires the `X-API-Key` header and the key must have the `users` permission.
 
-### Create User
+#### Create User
 
 > TODO: Email user to confirm.
+>
 > TODO: Screen username for offensive words and phrases.
 
 Request:
 
+> POST: /user/create
+
 ```json
 {
   username: "Username",
-  password: "Password",
+  password: "Password", // Password must be 
   email: "Email",
 }
 ```
@@ -90,18 +123,22 @@ Return:
 
 If returned status is 401, the errorCode will be one of the following:
 
-* username
+* usernameTaken
   * Username is already taken
+* usernameDisallowed
+  * Username is not allowed (due to offensive words/phrases)
 * password
-  * Password does not follow rules
+  * Password is to short or too long.
 * email
   * Email is already linked to an account
 * disallowed
   * Username contains words/phases that are not allowed
 
-### Login
+#### Login
 
 Request:
+
+> POST: /user
 
 ```json
 {
@@ -116,5 +153,22 @@ Return:
 {
   token: "JWT Token",
   timeout: 0, // login attempt timeout (in seconds). If non-zero, token will be empty.
+}
+```
+
+### Crash Report
+
+Crash reports require the `X-API-Key` header and the key must match the URL's appID and have the `crash` permission
+
+Request:
+
+> POST: /{appID}/crash
+
+```json
+{
+  id: "UUID", // This is an ignored value, but it is highly recommended to include it to prevent reporting the same crash multiple times.
+  platform: "android",
+  error: "error",
+  stack: "stacktrace"
 }
 ```

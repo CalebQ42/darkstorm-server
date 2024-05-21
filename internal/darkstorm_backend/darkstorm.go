@@ -2,37 +2,64 @@ package darkstorm
 
 import (
 	"crypto/ed25519"
+	"encoding/json"
 	"errors"
 	"net/http"
-	"strings"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
-)
-
-var (
-	ErrApiKeyUnauthorized = errors.New("api key invalid")
-	ErrTokenUnauthorized  = errors.New("token invalid")
 )
 
 type Backend struct {
 	userTable Table[User]
-	keyTable  Table[Key]
+	keyTable  Table[ApiKey]
 	m         *http.ServeMux
 	jwtPriv   ed25519.PrivateKey
 	jwtPub    ed25519.PublicKey
-	apps      []App
+	apps      map[string]App
 }
 
-func NewBackend(keyTable Table[Key], apps ...App) (*Backend, error) {
+func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 	b := &Backend{
 		keyTable: keyTable,
 		m:        &http.ServeMux{},
-		apps:     apps,
+		apps:     make(map[string]App),
 	}
-	//TODO: register paths to the mux
+	var hasLog, hasCrash bool
+	for i := range apps {
+		_, has := b.apps[apps[i].AppID()]
+		if has {
+			return nil, errors.New("duplicate AppIDs found")
+		}
+		b.apps[apps[i].AppID()] = apps[i]
+		if ext, is := apps[i].(ExtendedApp); is {
+			b.m.HandleFunc("/"+apps[i].AppID()+"/", ext.Extension)
+		}
+		if !hasLog && apps[i].LogTable() != nil {
+			hasLog = true
+		}
+		if !hasCrash && apps[i].CrashTable() != nil {
+			hasCrash = true
+		}
+	}
+	if hasLog {
+		b.m.HandleFunc("POST /log/{uuid}", b.log)
+	}
+	if hasCrash {
+		b.m.HandleFunc("POST /crash", b.reportCrash)
+		b.m.HandleFunc("DELETE /crash/{crashID}", b.deleteCrash)
+		b.m.HandleFunc("POST /crash/archive", b.archiveCrash)
+		b.m.HandleFunc("DELETE /{appID}/crash/{crashID}", b.deleteCrash)
+		b.m.HandleFunc("POST /{appID}/crash/archive", b.archiveCrash)
+	}
 	b.startCleanupLoop()
 	return b, nil
+}
+
+func (b *Backend) startCleanupLoop() {
+	go func() {
+		for range time.Tick(24 * time.Hour) {
+			//TODO
+		}
+	}()
 }
 
 func (b *Backend) AddUserAuth(userTable Table[User], privKey, pubKey []byte) {
@@ -45,46 +72,19 @@ func (b *Backend) HandleFunc(pattern string, h http.HandlerFunc) {
 	b.m.HandleFunc(pattern, h)
 }
 
-func (b *Backend) startCleanupLoop() {
-	go func() {
-		for range time.Tick(6 * time.Hour) {
-			//TODO
-		}
-	}()
+func (b *Backend) GetApp(a *ApiKey) App {
+	return b.apps[a.AppID]
 }
 
-type ParsedHeader struct {
-	u *ReqUser
-	k *Key
+type retError struct {
+	ErrorCode string `json:"errorCode"`
+	ErrorMsg  string `json:"errorMsg"`
 }
 
-func (b *Backend) ParseHeader(r *http.Request) (ParsedHeader, error) {
-	out := ParsedHeader{}
-	key := r.Header.Get("X-API-Key")
-	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if key != "" {
-		apiKey, err := b.keyTable.Get(key)
-		if err != nil {
-			return out, errors.Join(ErrApiKeyUnauthorized, err)
-		}
-		out.k = &apiKey
-	}
-	if token != "" && b.userTable != nil {
-		t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-			return b.jwtPub, nil
-		}, jwt.WithIssuer("darkstorm.tech"), jwt.WithExpirationRequired())
-		if err != nil {
-			return out, errors.Join(ErrTokenUnauthorized, err)
-		}
-		sub, err := t.Claims.GetSubject()
-		if err != nil {
-			return out, errors.Join(ErrTokenUnauthorized, err)
-		}
-		usr, err := b.userTable.Get(sub)
-		if err != nil{
-			return out, errors.Join(ErrTokenUnauthorized, err)
-		}
-		
-	}
-	return out, nil
+func ReturnError(w http.ResponseWriter, status int, code, msg string) {
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(retError{
+		ErrorCode: code,
+		ErrorMsg:  msg,
+	})
 }

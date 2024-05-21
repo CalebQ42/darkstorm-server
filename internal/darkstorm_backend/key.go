@@ -1,12 +1,12 @@
 package darkstorm
 
-type Key struct {
+type ApiKey struct {
 	Perm  map[string]bool
 	ID    string
 	AppID string
-	Death int
+	Death int64
 }
 
-func (k Key) GetID() string {
+func (k ApiKey) GetID() string {
 	return k.ID
 }

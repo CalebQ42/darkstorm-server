@@ -2,6 +2,12 @@ package darkstorm
 
 import "net/http"
 
+type ArchivedCrash struct {
+	Error    string
+	Stack    string
+	Platform string
+}
+
 type IndividualCrash struct {
 	Platform string
 	Error    string
@@ -27,7 +33,7 @@ type crashReq struct {
 	Stack    string
 }
 
-func (b *Backend) ReportCrash(w http.ResponseWriter, r *http.Request) {
+func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
 	if hdr.k == nil || hdr.k.Perm["crash"] {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -40,7 +46,20 @@ func (b *Backend) ReportCrash(w http.ResponseWriter, r *http.Request) {
 	//TODO
 }
 
-func (b *Backend) DeleteCrash(w http.ResponseWriter, r *http.Request) {
+func (b *Backend) deleteCrash(w http.ResponseWriter, r *http.Request) {
+	hdr, err := b.ParseHeader(r)
+	if hdr.k == nil || hdr.k.Perm["management"] {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		//TODO
+		return
+	}
+	//TODO
+}
+
+func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
 	if hdr.k == nil || hdr.k.Perm["management"] {
 		w.WriteHeader(http.StatusUnauthorized)

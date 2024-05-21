@@ -6,11 +6,13 @@ This is a purposefully "simple" application backend made specifically for _my_ a
 
 ### API Key
 
+The special appID "darkstormManagement" is used to manage all apps. 
+
 ```json
 {
   id: "API Key",
   appID: "appID",
-  death: -1, // unix timestamp when the key is no longer valid. -1 means there is not expected expiration (that can change in the future)
+  death: -1, // unix timestamp (seconds) when the key is no longer valid. -1 means there is not expected expiration (that can change in the future)
   perm: {
     user: true, // create and login users
     log: true, // log users
@@ -37,12 +39,12 @@ Users are stored per backend and not per app.
 
 ```json
 {
-  id: "UUID",
+  id: "uuid",
   username: "username",
   password: "hashed password",
   salt: "password salt",
   email: "email",
-  passwordChange: 0, // unix timestamp of last password change
+  passwordChange: 0, // unix timestamp (seconds) of last password change
   perm: {
     appID: "user", // Optional. Apps should have a default permission level if thier appID is not in perm.
   }
@@ -99,13 +101,18 @@ If an error status code is returned then the body will be as follows.
 }
 ```
 
+`errorCode`'s returned from the main library:
+
+* invalidKey
+  * API Key is invalid or does not have the needed permission for the request.
+
 ### Log
 
 API Key must have the `log` permission.
 
 Request:
 
-> POST: /log
+> POST: /log/{uuid}
 
 ### Users
 
@@ -171,9 +178,19 @@ Return:
 ```json
 {
   token: "JWT Token",
+  error: "Error",
   timeout: 0, // login attempt timeout (in seconds). If non-zero, token will be empty.
 }
 ```
+
+`token` and `error` are mutually exclusive.
+
+Possible `error` values:
+
+* timeout
+  * Account is currently timed-out. The `timeout` value will be non-zero.
+* invalid
+  * Either the username or password is incorrect
 
 ### Crash Report
 
@@ -186,6 +203,8 @@ API Key must have the `crash` permission.
 Request:
 
 > POST: /crash
+
+Request Body:
 
 ```json
 {
@@ -203,3 +222,29 @@ API Key must have the `management` permission.
 Request:
 
 > DELETE: /crash/{crashID}
+
+With "darkstormManagement" key:
+
+> DELETE: /{appID}/crash/{crashID}
+
+#### Archive
+
+Archive an error, preventing error with these values to be ignored in the future. API Key must have the `management` permission.
+
+Request:
+
+> POST: /crash/archive
+
+With "darkstormManagement" key:
+
+> POST: /{appID}/crash/{crashID}
+
+Request Body:
+
+```json
+{
+  error: "error",
+  stack: "full stacktrace",
+  platform: "all", // Limit the archive to a specific platform, or use "all".
+}
+```

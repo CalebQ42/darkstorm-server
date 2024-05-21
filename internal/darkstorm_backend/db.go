@@ -3,7 +3,7 @@ package darkstorm
 import "errors"
 
 var (
-	ErrIDNotFound = errors.New("id not found in table")
+	ErrNotFound = errors.New("no matches found in table")
 )
 
 type IDStruct interface {
@@ -12,12 +12,14 @@ type IDStruct interface {
 
 type Table[T IDStruct] interface {
 	Get(ID string) (data T, err error)
+	Find(values map[string]any) ([]T, error)
 	Insert(data T) error
-	Update(data T) error
-	Remove(ID string)
+	Remove(ID string) error
+	FullUpdate(ID string, data T) error
+	PartUpdate(ID string, update map[string]any) error
 }
 
 type CrashTable interface {
 	Table[CrashReport]
-	InsertCrash(report IndividualCrash) error
+	InsertCrash(ID string, report IndividualCrash) error
 }

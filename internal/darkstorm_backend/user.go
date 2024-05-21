@@ -5,8 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"net/http"
+	"time"
 
-	"github.com/google/uuid"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -21,13 +22,13 @@ func generateSalt() (string, error) {
 }
 
 type User struct {
-	Perm           map[string]string
-	ID             string
-	Username       string
-	Password       string
-	Salt           string
-	Email          string
-	PasswordChange uint64
+	Perm           map[string]string `json:"perm" bson:"perm"`
+	ID             string            `json:"id" bson:"_id"`
+	Username       string            `json:"username" bson:"username"`
+	Password       string            `json:"password" bson:"password"`
+	Salt           string            `json:"salt" bson:"salt"`
+	Email          string            `json:"email" bson:"email"`
+	PasswordChange int64             `json:"passwordChange" bson:"passwordChange"`
 }
 
 type ReqUser struct {
@@ -36,35 +37,21 @@ type ReqUser struct {
 	Username string
 }
 
-func NewUser(username, password, email string) (*User, error) {
-	if len(password) < 12 || len(password) > 128 {
-		return nil, ErrPasswordLength
-	}
-	id, err := uuid.NewV7()
-	if err != nil {
-		return nil, err
-	}
-	salt, err := generateSalt()
-	if err != nil {
-		return nil, err
-	}
-	out := &User{
-		Perm:     make(map[string]string),
-		ID:       id.String(),
-		Username: username,
-		Salt:     salt,
-		Email:    email,
-	}
-	out.Password, err = out.HashPassword(password)
-	return out, err
+func (b *Backend) generateJWT(r *ReqUser) (string, error) {
+	return jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.RegisteredClaims{
+		ID:        r.ID,
+		Issuer:    "darkstorm.tech",
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
+	}).SignedString(b.jwtPriv)
 }
 
 func (u User) GetID() string {
 	return u.ID
 }
 
-func (u User) toReqUser() ReqUser {
-	return ReqUser{
+func (u User) toReqUser() *ReqUser {
+	return &ReqUser{
 		Perm:     u.Perm,
 		ID:       u.ID,
 		Username: u.Username,
@@ -114,5 +101,10 @@ type loginReturn struct {
 }
 
 func (b *Backend) Login(w http.ResponseWriter, r *http.Request) {
-	//TODO
+	hdr, err := b.ParseHeader(r)
+	if hdr.k == nil || !hdr.k.Perm["user"] || errors.Is(err, ErrApiKeyUnauthorized) {
+		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
+		return
+	}
+	
 }

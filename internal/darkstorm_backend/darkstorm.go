@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -12,16 +13,18 @@ type Backend struct {
 	userTable Table[User]
 	keyTable  Table[ApiKey]
 	m         *http.ServeMux
+	apps      map[string]App
 	jwtPriv   ed25519.PrivateKey
 	jwtPub    ed25519.PublicKey
-	apps      map[string]App
+	userMutex sync.RWMutex
 }
 
 func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 	b := &Backend{
-		keyTable: keyTable,
-		m:        &http.ServeMux{},
-		apps:     make(map[string]App),
+		keyTable:  keyTable,
+		m:         &http.ServeMux{},
+		apps:      make(map[string]App),
+		userMutex: sync.RWMutex{},
 	}
 	var hasLog, hasCrash bool
 	for i := range apps {

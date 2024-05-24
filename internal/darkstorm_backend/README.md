@@ -6,7 +6,7 @@ This is a purposefully "simple" application backend made specifically for _my_ a
 
 ### API Key
 
-The special appID "darkstormManagement" is used to manage all apps. 
+The special appID "darkstormManagement" is used to manage all apps.
 
 ```json
 {
@@ -44,6 +44,8 @@ Users are stored per backend and not per app.
   password: "hashed password",
   salt: "password salt",
   email: "email",
+  fails: 0, // number of failed attemps in a row.
+  timeout: 0, // unix timestamp (seconds) when current timeout ends.
   passwordChange: 0, // unix timestamp (seconds) of last password change
   perm: {
     appID: "user", // Optional. Apps should have a default permission level if thier appID is not in perm.
@@ -105,6 +107,10 @@ If an error status code is returned then the body will be as follows.
 
 * invalidKey
   * API Key is invalid or does not have the needed permission for the request.
+* invalidBody
+  * Body of the request is malformed.
+* internal
+  * Server-side issue.
 
 ### Log
 
@@ -149,16 +155,12 @@ Return:
 
 If returned status is 401, the errorCode will be one of the following:
 
-* usernameTaken
-  * Username is already taken
+* taken
+  * Username or email is already taken
 * usernameDisallowed
   * Username is not allowed (due to offensive words/phrases)
 * password
   * Password is to short or too long.
-* email
-  * Email is already linked to an account
-* disallowed
-  * Username contains words/phases that are not allowed
 
 #### Login
 
@@ -179,7 +181,7 @@ Return:
 {
   token: "JWT Token",
   error: "Error",
-  timeout: 0, // login attempt timeout (in seconds). If non-zero, token will be empty.
+  timeout: 0, // login attempt timeout remaining (in seconds). If non-zero, token will be empty.
 }
 ```
 

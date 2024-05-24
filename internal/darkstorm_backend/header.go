@@ -19,6 +19,9 @@ type ParsedHeader struct {
 	k *ApiKey
 }
 
+// Parses the X-API-Key and Authorization headers. If the API Key provided but invalid (either due to expiring or isn't found),
+// ErrApiKeyUnauthorized is part of the returned error (check with errors.Is).
+// If the Authorization header is present but invalid, ErrTokenUnauthorized is part of the returned error (check with errors.Is).
 func (b *Backend) ParseHeader(r *http.Request) (ParsedHeader, error) {
 	out := ParsedHeader{}
 	key := r.Header.Get("X-API-Key")

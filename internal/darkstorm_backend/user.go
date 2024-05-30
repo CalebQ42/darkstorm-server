@@ -118,6 +118,9 @@ func (b *Backend) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if hdr.k == nil || !hdr.k.Perm["user"] || errors.Is(err, ErrApiKeyUnauthorized) {
 		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 		return
+	} else if err != nil {
+		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+		return
 	}
 	defer r.Body.Close()
 	var req createUserRequest
@@ -185,6 +188,9 @@ func (b *Backend) Login(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
 	if hdr.k == nil || !hdr.k.Perm["user"] || errors.Is(err, ErrApiKeyUnauthorized) {
 		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
+		return
+	} else if err != nil {
+		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
 	defer r.Body.Close()

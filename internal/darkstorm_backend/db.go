@@ -21,5 +21,11 @@ type Table[T IDStruct] interface {
 
 type CrashTable interface {
 	Table[CrashReport]
-	InsertCrash(ID string, report IndividualCrash) error
+	// Move a crash type to archive. All instances that perfectly match that appear in CrashReport.Individual should be deleted.
+	// If a CrashReport ends up with an empty Individual array it should also be deleted.
+	Archive(ArchivedCrash)
+	IsArchived(IndividualCrash) bool
+	// Add the IndividualCrash report to the crash table. If a CrashReport exists that matches, then it gets added to CrashReport.Individual.
+	// If an IndividualCrash exists that is a perfect match, Count is incremented instead of adding it to the array.
+	InsertCrash(IndividualCrash) error
 }

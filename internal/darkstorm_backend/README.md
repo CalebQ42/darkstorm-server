@@ -105,6 +105,8 @@ If an error status code is returned then the body will be as follows.
 
 `errorCode`'s returned from the main library:
 
+* misconfigured
+  * Backend is configured incorrectly (such as App returning nil crash table, but key has crash permission)
 * invalidKey
   * API Key is invalid or does not have the needed permission for the request.
 * invalidBody

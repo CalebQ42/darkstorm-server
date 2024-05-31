@@ -10,13 +10,14 @@ import (
 )
 
 type Backend struct {
-	userTable Table[User]
-	keyTable  Table[ApiKey]
-	m         *http.ServeMux
-	apps      map[string]App
-	jwtPriv   ed25519.PrivateKey
-	jwtPub    ed25519.PublicKey
-	userMutex sync.RWMutex
+	userTable       Table[User]
+	keyTable        Table[ApiKey]
+	m               *http.ServeMux
+	apps            map[string]App
+	managementKeyID string
+	jwtPriv         ed25519.PrivateKey
+	jwtPub          ed25519.PublicKey
+	userMutex       sync.RWMutex
 }
 
 func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
@@ -50,19 +51,29 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		b.m.HandleFunc("POST /crash", b.reportCrash)
 		b.m.HandleFunc("DELETE /crash/{crashID}", b.deleteCrash)
 		b.m.HandleFunc("POST /crash/archive", b.archiveCrash)
-		b.m.HandleFunc("DELETE /{appID}/crash/{crashID}", b.deleteCrash)
-		b.m.HandleFunc("POST /{appID}/crash/archive", b.archiveCrash)
 	}
-	b.startCleanupLoop()
+	go b.cleanupLoop()
 	return b, nil
 }
 
-func (b *Backend) startCleanupLoop() {
-	go func() {
-		for range time.Tick(24 * time.Hour) {
-			//TODO
+func (b *Backend) cleanupLoop() {
+	for range time.Tick(24 * time.Hour) {
+		oldTim := time.Now().Add(-30 * 24 * time.Hour)
+		old := (oldTim.Year() * 10000) + (int(oldTim.Month()) * 100) + oldTim.Day()
+		for _, a := range b.apps {
+			tab := a.LogTable()
+			if tab == nil {
+				continue
+			}
+			tab.RemoveOldLogs(old)
 		}
-	}()
+	}
+}
+
+func (b *Backend) EnableManagementKey(managementID string) {
+	b.managementKeyID = managementID
+	b.m.HandleFunc("DELETE /{appID}/crash/{crashID}", b.managementDeleteCrash)
+	b.m.HandleFunc("POST /{appID}/crash/archive", b.managementArchiveCrash)
 }
 
 func (b *Backend) AddUserAuth(userTable Table[User], privKey, pubKey []byte) {

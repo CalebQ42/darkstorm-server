@@ -19,6 +19,12 @@ type Table[T IDStruct] interface {
 	PartUpdate(ID string, update map[string]any) error
 }
 
+type LogTable interface {
+	Table[Log]
+	// Remove all Log items that have a Log.Date value less then the given value.
+	RemoveOldLogs(date int)
+}
+
 type CrashTable interface {
 	Table[CrashReport]
 	// Move a crash type to archive. All instances that perfectly match that appear in CrashReport.Individual should be deleted.

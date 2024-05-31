@@ -77,6 +77,20 @@ func (b *Backend) deleteCrash(w http.ResponseWriter, r *http.Request) {
 	//TODO
 }
 
+func (b *Backend) managementDeleteCrash(w http.ResponseWriter, r *http.Request) {
+	hdr, err := b.ParseHeader(r)
+	if hdr.k == nil || hdr.k.Perm["management"] || errors.Is(err, ErrApiKeyUnauthorized) {
+		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
+		return
+	} else if err != nil {
+		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+		return
+	}
+	//TODO
+}
+
+func (b *Backend) actualCrashDelete(w http.ResponseWriter, ap App, crashID string) {}
+
 func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
 	if hdr.k == nil || hdr.k.Perm["management"] {
@@ -89,3 +103,18 @@ func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
 	}
 	//TODO
 }
+
+func (b *Backend) managementArchiveCrash(w http.ResponseWriter, r *http.Request) {
+	hdr, err := b.ParseHeader(r)
+	if hdr.k == nil || hdr.k.Perm["management"] {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if err != nil {
+		//TODO
+		return
+	}
+	//TODO
+}
+
+func (b *Backend) actualCrashArchive(w http.ResponseWriter, ap App, toArchive ArchivedCrash) {}

@@ -29,7 +29,7 @@ The special appID "darkstormManagement" is used to manage all apps.
 {
   id: "UUID",
   platform: "android",
-  Date: 20240519 // YYYYMMD
+  Date: 20240519 // YYYYMMDD as int
 }
 ```
 

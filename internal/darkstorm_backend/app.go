@@ -5,7 +5,7 @@ import "net/http"
 // An application interface. Both LogTable and CrashTable are optional, if they return nil then requests will be forbidden.
 type App interface {
 	AppID() string
-	LogTable() Table[Log]
+	LogTable() LogTable
 	CrashTable() CrashTable
 }
 

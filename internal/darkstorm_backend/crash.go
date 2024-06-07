@@ -3,6 +3,7 @@ package darkstorm
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 )
 
@@ -31,18 +32,14 @@ func (c CrashReport) GetID() string {
 }
 
 func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
-	var ap App
-	hdr, err := b.ParseHeader(r)
-	if hdr.k != nil {
-		ap = b.GetApp(hdr.k)
-	}
-	if ap == nil || hdr.k.Perm["crash"] || errors.Is(err, ErrApiKeyUnauthorized) {
-		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
-		return
-	} else if err != nil {
-		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+	hdr, err := b.VerifyHeader(w, r, "crash", false)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
 		return
 	}
+	ap := b.GetApp(hdr.Key)
 	defer r.Body.Close()
 	var crash IndividualCrash
 	err = json.NewDecoder(r.Body).Decode(&crash)
@@ -52,12 +49,14 @@ func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
 	}
 	tab := ap.CrashTable()
 	if tab == nil {
+		log.Printf("key %v has crash permission, but app does not have a crash table", hdr.Key.AppID)
 		ReturnError(w, http.StatusInternalServerError, "misconfigured", "Server misconfigured")
 		return
 	}
 	if !tab.IsArchived(crash) {
 		err = tab.InsertCrash(crash)
 		if err != nil {
+			log.Println("crash insertion error:", err)
 			ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 			return
 		}
@@ -67,7 +66,7 @@ func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
 
 func (b *Backend) deleteCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
-	if hdr.k == nil || hdr.k.Perm["management"] || errors.Is(err, ErrApiKeyUnauthorized) {
+	if hdr.Key == nil || hdr.Key.Perm["management"] || errors.Is(err, ErrApiKeyUnauthorized) {
 		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 		return
 	} else if err != nil {
@@ -79,7 +78,7 @@ func (b *Backend) deleteCrash(w http.ResponseWriter, r *http.Request) {
 
 func (b *Backend) managementDeleteCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
-	if hdr.k == nil || hdr.k.Perm["management"] || errors.Is(err, ErrApiKeyUnauthorized) {
+	if hdr.Key == nil || hdr.Key.Perm["management"] || errors.Is(err, ErrApiKeyUnauthorized) {
 		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 		return
 	} else if err != nil {
@@ -93,7 +92,7 @@ func (b *Backend) actualCrashDelete(w http.ResponseWriter, ap App, crashID strin
 
 func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
-	if hdr.k == nil || hdr.k.Perm["management"] {
+	if hdr.Key == nil || hdr.Key.Perm["management"] {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -106,7 +105,7 @@ func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
 
 func (b *Backend) managementArchiveCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
-	if hdr.k == nil || hdr.k.Perm["management"] {
+	if hdr.Key == nil || hdr.Key.Perm["management"] {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"time"
 
@@ -114,12 +115,11 @@ type createUserReturn struct {
 }
 
 func (b *Backend) CreateUser(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.ParseHeader(r)
-	if hdr.k == nil || !hdr.k.Perm["user"] || errors.Is(err, ErrApiKeyUnauthorized) {
-		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
-		return
-	} else if err != nil {
-		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+	hdr, err := b.VerifyHeader(w, r, "user", false)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
 		return
 	}
 	defer r.Body.Close()
@@ -186,7 +186,7 @@ type loginReturn struct {
 
 func (b *Backend) Login(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.ParseHeader(r)
-	if hdr.k == nil || !hdr.k.Perm["user"] || errors.Is(err, ErrApiKeyUnauthorized) {
+	if hdr.Key == nil || !hdr.Key.Perm["user"] || errors.Is(err, ErrApiKeyUnauthorized) {
 		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 		return
 	} else if err != nil {

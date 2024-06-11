@@ -37,7 +37,7 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		if ext, is := apps[i].(ExtendedApp); is {
 			b.m.HandleFunc("/"+apps[i].AppID()+"/", ext.Extension)
 		}
-		if !hasLog && apps[i].LogTable() != nil {
+		if !hasLog && apps[i].CountTable() != nil {
 			hasLog = true
 		}
 		if !hasCrash && apps[i].CrashTable() != nil {
@@ -45,7 +45,8 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		}
 	}
 	if hasLog {
-		b.m.HandleFunc("POST /log/{uuid}", b.log)
+		b.m.HandleFunc("POST /count/{uuid}", b.countLog)
+		b.m.HandleFunc("GET /count", b.getCount)
 	}
 	if hasCrash {
 		b.m.HandleFunc("POST /crash", b.reportCrash)
@@ -61,7 +62,7 @@ func (b *Backend) cleanupLoop() {
 		oldTim := time.Now().Add(-30 * 24 * time.Hour)
 		old := (oldTim.Year() * 10000) + (int(oldTim.Month()) * 100) + oldTim.Day()
 		for _, a := range b.apps {
-			tab := a.LogTable()
+			tab := a.CountTable()
 			if tab == nil {
 				continue
 			}
@@ -74,12 +75,16 @@ func (b *Backend) EnableManagementKey(managementID string) {
 	b.managementKeyID = managementID
 	b.m.HandleFunc("DELETE /{appID}/crash/{crashID}", b.managementDeleteCrash)
 	b.m.HandleFunc("POST /{appID}/crash/archive", b.managementArchiveCrash)
+	b.m.HandleFunc("GET /{appID}/count", b.getCount)
 }
 
 func (b *Backend) AddUserAuth(userTable Table[User], privKey, pubKey []byte) {
 	b.userTable = userTable
 	b.jwtPriv = privKey
 	b.jwtPub = pubKey
+	b.m.HandleFunc("POST /user/create", b.createUser)
+	b.m.HandleFunc("DELETE /user/{userID}", b.deleteUser)
+	b.m.HandleFunc("POST /user/login", b.login)
 }
 
 func (b *Backend) HandleFunc(pattern string, h http.HandlerFunc) {

@@ -6,8 +6,6 @@ This is a purposefully "simple" application backend made specifically for _my_ a
 
 ### API Key
 
-The special appID "darkstormManagement" is used to manage all apps.
-
 ```json
 {
   id: "API Key",
@@ -15,7 +13,7 @@ The special appID "darkstormManagement" is used to manage all apps.
   death: -1, // unix timestamp (seconds) when the key is no longer valid. -1 means there is not expected expiration (that can change in the future)
   perm: {
     user: true, // create and login users
-    log: true, // log users
+    count: true, // count users
     crash: true, // crash reports
     management: false, // managing
     // further permissions can be added as needed
@@ -23,7 +21,9 @@ The special appID "darkstormManagement" is used to manage all apps.
 }
 ```
 
-### DB Log
+Optionally you can set a special AppID to be a management key. Setting a management key enables management requests.
+
+### Count log
 
 ```json
 {
@@ -111,22 +111,50 @@ If an error status code is returned then the body will be as follows.
   * API Key is invalid or does not have the needed permission for the request.
 * invalidBody
   * Body of the request is malformed.
+* badRequest
+  * Some part of your request is invalid
 * internal
   * Server-side issue.
 
-### Log
+### Count
 
-API Key must have the `log` permission.
+API Key must have the `Count` permission.
 
 Request:
 
-> POST: /log/{uuid}
+> POST: /count/{uuid}
+
+### User Count
+
+Get a count of users.
+
+API Key must have the `management` permission.
+
+`platform` query is optional (defaults to all).
+
+Request:
+
+> GET: /count?platform=all
+
+With management key:
+
+> GET: /{appID}/count?platform=all
+
+Returns:
+
+```json
+{
+  count: 0
+}
+```
 
 ### Users
 
 > TODO: Add the ability to create users and log-in through third-parties (such as Google).
 
 All requsests pertaining to users requires the `X-API-Key` header and the key must have the `users` permission.
+
+Enabled by using `Backend.AddUserAuth`.
 
 #### Create User
 
@@ -164,11 +192,19 @@ If returned status is 401, the errorCode will be one of the following:
 * password
   * Password is to short or too long.
 
+#### Delete User
+
+Requires either the `management` permission or a management key.
+
+Request:
+
+> DELETE: /user/{userID}
+
 #### Login
 
 Request:
 
-> POST: /user
+> POST: /user/login
 
 ```json
 {
@@ -196,9 +232,21 @@ Possible `error` values:
 * invalid
   * Either the username or password is incorrect
 
-### Crash Report
+#### Change Password
 
-> TODO: Archive a crash to prevent it being reported again.
+Request:
+
+> POST: /user/changepassword
+
+```json
+{
+  token: "JWT Token",
+  old: "Old Password",
+  new: "New Password"
+}
+```
+
+### Crash Report
 
 #### Report
 
@@ -227,7 +275,7 @@ Request:
 
 > DELETE: /crash/{crashID}
 
-With "darkstormManagement" key:
+With management key:
 
 > DELETE: /{appID}/crash/{crashID}
 
@@ -239,16 +287,16 @@ Request:
 
 > POST: /crash/archive
 
-With "darkstormManagement" key:
+With management key:
 
-> POST: /{appID}/crash/{crashID}
+> POST: /{appID}/crash/archive
 
 Request Body:
 
 ```json
 {
   error: "error",
-  stack: "full stacktrace",
+  stack: "full stacktrace", // Archives will only match against a perfect match.
   platform: "all", // Limit the archive to a specific platform, or use "all".
 }
 ```

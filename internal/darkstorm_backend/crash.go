@@ -2,7 +2,6 @@ package darkstorm
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"net/http"
 )
@@ -65,55 +64,105 @@ func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *Backend) deleteCrash(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.ParseHeader(r)
-	if hdr.Key == nil || hdr.Key.Perm["management"] || errors.Is(err, ErrApiKeyUnauthorized) {
-		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
-		return
-	} else if err != nil {
-		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+	hdr, err := b.VerifyHeader(w, r, "management", false)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
 		return
 	}
-	//TODO
+	crashID := r.PathValue("crashID")
+	if crashID == "" {
+		ReturnError(w, http.StatusBadRequest, "badRequest", "Bad request")
+		return
+	}
+	b.actualCrashDelete(w, b.GetApp(hdr.Key), crashID)
 }
 
 func (b *Backend) managementDeleteCrash(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.ParseHeader(r)
-	if hdr.Key == nil || hdr.Key.Perm["management"] || errors.Is(err, ErrApiKeyUnauthorized) {
-		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
-		return
-	} else if err != nil {
-		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+	hdr, err := b.VerifyHeader(w, r, "management", true)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
 		return
 	}
-	//TODO
+	crashID := r.PathValue("crashID")
+	if crashID == "" {
+		ReturnError(w, http.StatusBadRequest, "badRequest", "Bad request")
+		return
+	}
+	appID := r.PathValue("appID")
+	ap := b.apps[appID]
+	if ap == nil || appID == "" {
+		ReturnError(w, http.StatusBadRequest, "badRequest", "Bad request")
+		return
+	}
+	b.actualCrashDelete(w, ap, crashID)
 }
 
-func (b *Backend) actualCrashDelete(w http.ResponseWriter, ap App, crashID string) {}
+func (b *Backend) actualCrashDelete(w http.ResponseWriter, ap App, crashID string) {
+	crash := ap.CrashTable()
+	if crash == nil {
+		ReturnError(w, http.StatusInternalServerError, "misconfigured", "Server Misconfigured")
+		return
+	}
+	err := crash.Remove(crashID)
+	if err != nil && err != ErrNotFound {
+		log.Println("error when deleting crash:", err)
+	}
+}
 
 func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.ParseHeader(r)
-	if hdr.Key == nil || hdr.Key.Perm["management"] {
-		w.WriteHeader(http.StatusUnauthorized)
+	hdr, err := b.VerifyHeader(w, r, "management", false)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
 		return
 	}
-	if err != nil {
-		//TODO
+	defer r.Body.Close()
+	var toArchive ArchivedCrash
+	err = json.NewDecoder(r.Body).Decode(&toArchive)
+	if err != nil || toArchive.Platform == "" || toArchive.Error == "" || toArchive.Stack == "" {
+		ReturnError(w, http.StatusBadRequest, "invalidBody", "Bad request")
 		return
 	}
-	//TODO
+	b.actualCrashArchive(w, b.GetApp(hdr.Key), toArchive)
 }
 
 func (b *Backend) managementArchiveCrash(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.ParseHeader(r)
-	if hdr.Key == nil || hdr.Key.Perm["management"] {
-		w.WriteHeader(http.StatusUnauthorized)
+	hdr, err := b.VerifyHeader(w, r, "management", true)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
 		return
 	}
-	if err != nil {
-		//TODO
+	appID := r.PathValue("appID")
+	ap := b.apps[appID]
+	if ap == nil || appID == "" {
+		ReturnError(w, http.StatusBadRequest, "badRequest", "Bad request")
 		return
 	}
-	//TODO
+	defer r.Body.Close()
+	var toArchive ArchivedCrash
+	err = json.NewDecoder(r.Body).Decode(&toArchive)
+	if err != nil || toArchive.Platform == "" || toArchive.Error == "" || toArchive.Stack == "" {
+		ReturnError(w, http.StatusBadRequest, "invalidBody", "Bad request")
+		return
+	}
+	b.actualCrashArchive(w, ap, toArchive)
 }
 
-func (b *Backend) actualCrashArchive(w http.ResponseWriter, ap App, toArchive ArchivedCrash) {}
+func (b *Backend) actualCrashArchive(w http.ResponseWriter, ap App, toArchive ArchivedCrash) {
+	crash := ap.CrashTable()
+	if crash == nil {
+		ReturnError(w, http.StatusInternalServerError, "misconfigured", "Server Misconfigured")
+		return
+	}
+	err := crash.Archive(toArchive)
+	if err != nil {
+		log.Println()
+	}
+}

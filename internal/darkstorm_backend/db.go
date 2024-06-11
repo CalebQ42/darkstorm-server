@@ -19,17 +19,18 @@ type Table[T IDStruct] interface {
 	PartUpdate(ID string, update map[string]any) error
 }
 
-type LogTable interface {
-	Table[Log]
-	// Remove all Log items that have a Log.Date value less then the given value.
+type CountTable interface {
+	Table[CountLog]
+	// Remove all Log items that have a CountLog.Date value less then the given value.
 	RemoveOldLogs(date int)
+	Count(platform string) int
 }
 
 type CrashTable interface {
 	Table[CrashReport]
 	// Move a crash type to archive. All instances that perfectly match that appear in CrashReport.Individual should be deleted.
 	// If a CrashReport ends up with an empty Individual array it should also be deleted.
-	Archive(ArchivedCrash)
+	Archive(ArchivedCrash) error
 	IsArchived(IndividualCrash) bool
 	// Add the IndividualCrash report to the crash table. If a CrashReport exists that matches, then it gets added to CrashReport.Individual.
 	// If an IndividualCrash exists that is a perfect match, Count is incremented instead of adding it to the array.

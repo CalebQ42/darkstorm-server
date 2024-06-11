@@ -15,7 +15,7 @@ var (
 )
 
 type ParsedHeader struct {
-	User *ReqUser
+	User *ReqestUser
 	Key  *ApiKey
 }
 

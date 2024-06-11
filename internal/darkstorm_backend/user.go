@@ -24,6 +24,24 @@ func generateSalt() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(out), err
 }
 
+type ReqestUser struct {
+	Perm     map[string]string
+	ID       string
+	Username string
+}
+
+func (b *Backend) GenerateJWT(r *ReqestUser) (string, error) {
+	if b.jwtPriv == nil || b.jwtPub == nil {
+		return "", errors.New("user management not enabled")
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.RegisteredClaims{
+		ID:        r.ID,
+		Issuer:    "darkstorm.tech",
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
+	}).SignedString(b.jwtPriv)
+}
+
 type User struct {
 	Perm           map[string]string `json:"perm" bson:"perm"`
 	ID             string            `json:"id" bson:"_id"`
@@ -59,27 +77,12 @@ func NewUser(username, password, email string) (User, error) {
 	return u, nil
 }
 
-type ReqUser struct {
-	Perm     map[string]string
-	ID       string
-	Username string
-}
-
-func (b *Backend) generateJWT(r *ReqUser) (string, error) {
-	return jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.RegisteredClaims{
-		ID:        r.ID,
-		Issuer:    "darkstorm.tech",
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
-	}).SignedString(b.jwtPriv)
-}
-
 func (u User) GetID() string {
 	return u.ID
 }
 
-func (u User) toReqUser() *ReqUser {
-	return &ReqUser{
+func (u User) toReqUser() *ReqestUser {
+	return &ReqestUser{
 		Perm:     u.Perm,
 		ID:       u.ID,
 		Username: u.Username,
@@ -114,7 +117,7 @@ type createUserReturn struct {
 	Token    string `json:"token"`
 }
 
-func (b *Backend) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "user", false)
 	if hdr == nil {
 		if err == nil {
@@ -164,13 +167,34 @@ func (b *Backend) CreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var ret createUserReturn
 	ret.Username = u.Username
-	ret.Token, err = b.generateJWT(u.toReqUser())
+	ret.Token, err = b.GenerateJWT(u.toReqUser())
 	if err != nil {
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(ret)
+}
+
+func (b *Backend) deleteUser(w http.ResponseWriter, r *http.Request) {
+	hdr, err := b.VerifyHeader(w, r, "management", true)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
+		return
+	}
+	userID := r.PathValue("userID")
+	if userID == "" {
+		ReturnError(w, http.StatusBadRequest, "badRequest", "Bad Request")
+		return
+	}
+	b.userMutex.Lock()
+	defer b.userMutex.Unlock()
+	err = b.userTable.Remove(userID)
+	if err != nil && err != ErrNotFound {
+		log.Println("error deleting user:", err)
+	}
 }
 
 type loginRequest struct {
@@ -184,13 +208,12 @@ type loginReturn struct {
 	Timeout int64  `json:"timeout"`
 }
 
-func (b *Backend) Login(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.ParseHeader(r)
-	if hdr.Key == nil || !hdr.Key.Perm["user"] || errors.Is(err, ErrApiKeyUnauthorized) {
-		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
-		return
-	} else if err != nil {
-		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
+	hdr, err := b.VerifyHeader(w, r, "user", false)
+	if hdr == nil {
+		if err == nil {
+			log.Println("request key parsing error:", err)
+		}
 		return
 	}
 	defer r.Body.Close()
@@ -224,7 +247,7 @@ func (b *Backend) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if u.Password == hash {
-		ret.Token, err = b.generateJWT(u.toReqUser())
+		ret.Token, err = b.GenerateJWT(u.toReqUser())
 		if err != nil {
 			ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 			return

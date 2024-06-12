@@ -1,4 +1,4 @@
-package darkstorm
+package backend
 
 import (
 	"encoding/json"
@@ -120,6 +120,10 @@ func (b *Backend) getCount(w http.ResponseWriter, r *http.Request) {
 		ReturnError(w, http.StatusBadRequest, "badRequest", "Trying to get user count on app that doesn't have a count table")
 		return
 	}
-	out := count.Count(r.URL.Query().Get("platform"))
+	out, err := count.Count(r.URL.Query().Get("platform"))
+	if err != nil {
+		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+		return
+	}
 	json.NewEncoder(w).Encode(map[string]int{"count": out})
 }

@@ -1,4 +1,4 @@
-package darkstorm
+package backend
 
 import (
 	"errors"
@@ -36,7 +36,7 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 		if apiKey.Death > 0 && time.Unix(apiKey.Death, 0).Before(time.Now()) {
 			return nil, ErrApiKeyUnauthorized
 		}
-		out.Key = &apiKey
+		out.Key = apiKey
 	}
 	if token != "" && b.userTable != nil {
 		t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {

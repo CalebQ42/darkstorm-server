@@ -1,4 +1,4 @@
-package darkstorm
+package backend
 
 type ApiKey struct {
 	Perm  map[string]bool

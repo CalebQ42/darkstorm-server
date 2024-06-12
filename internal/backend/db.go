@@ -1,4 +1,4 @@
-package darkstorm
+package backend
 
 import "errors"
 
@@ -11,7 +11,7 @@ type IDStruct interface {
 }
 
 type Table[T IDStruct] interface {
-	Get(ID string) (data T, err error)
+	Get(ID string) (data *T, err error)
 	Find(values map[string]any) ([]T, error)
 	Insert(data T) error
 	Remove(ID string) error
@@ -22,9 +22,9 @@ type Table[T IDStruct] interface {
 type CountTable interface {
 	Table[CountLog]
 	// Remove all Log items that have a CountLog.Date value less then the given value.
-	RemoveOldLogs(date int)
+	RemoveOldLogs(date int) error
 	// Get count. If platform is an empty string or "all", the full count should be given
-	Count(platform string) int
+	Count(platform string) (int, error)
 }
 
 type CrashTable interface {

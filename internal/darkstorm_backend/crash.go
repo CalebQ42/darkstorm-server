@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type ArchivedCrash struct {
@@ -163,6 +164,38 @@ func (b *Backend) actualCrashArchive(w http.ResponseWriter, ap App, toArchive Ar
 	}
 	err := crash.Archive(toArchive)
 	if err != nil {
-		log.Println()
+		log.Println("error archive crash:", err)
+		return
+	}
+	first, _, _ := strings.Cut(toArchive.Stack, "\n")
+	crashes, err := crash.Find(map[string]any{"error": toArchive.Error, "firstLine": first})
+	if err == ErrNotFound {
+		return
+	} else if err != nil {
+		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
+		return
+	}
+	for _, c := range crashes {
+		ogLen := len(c.Individual)
+		for i := 0; i < len(c.Individual); i++ {
+			ind := c.Individual[i]
+			if ind.Stack == toArchive.Stack {
+				if toArchive.Platform == "all" || toArchive.Platform == ind.Platform {
+					c.Individual = append(c.Individual[:i], c.Individual[i+1:]...)
+					i--
+				}
+			}
+		}
+		if len(c.Individual) == 0 {
+			err = crash.Remove(c.ID)
+			if err != nil {
+				log.Println("error removing empty crash report:", err)
+			}
+		} else if len(c.Individual) < ogLen {
+			err = crash.PartUpdate(c.ID, map[string]any{"individual": c.Individual})
+			if err != nil {
+				log.Println("error updating individual crash reports:", err)
+			}
+		}
 	}
 }

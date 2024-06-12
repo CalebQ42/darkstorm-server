@@ -118,11 +118,26 @@ If an error status code is returned then the body will be as follows.
 
 ### Count
 
-API Key must have the `Count` permission.
+API Key must have the `count` permission.
 
 Request:
 
-> POST: /count/{uuid}
+> POST: /count
+
+```json
+{
+  id: "uuid", // Should be an empty string on first request. If invalid or too old, a new UUID will be returned.
+  platform: "web"
+}
+```
+
+Returns:
+
+```json
+{
+  id: "uuid"
+}
+```
 
 ### User Count
 

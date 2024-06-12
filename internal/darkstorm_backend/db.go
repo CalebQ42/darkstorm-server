@@ -23,13 +23,13 @@ type CountTable interface {
 	Table[CountLog]
 	// Remove all Log items that have a CountLog.Date value less then the given value.
 	RemoveOldLogs(date int)
+	// Get count. If platform is an empty string or "all", the full count should be given
 	Count(platform string) int
 }
 
 type CrashTable interface {
 	Table[CrashReport]
-	// Move a crash type to archive. All instances that perfectly match that appear in CrashReport.Individual should be deleted.
-	// If a CrashReport ends up with an empty Individual array it should also be deleted.
+	// Move a crash type to archive. Crashes that match the archived crash will be automatically removed from the CrashTable.
 	Archive(ArchivedCrash) error
 	IsArchived(IndividualCrash) bool
 	// Add the IndividualCrash report to the crash table. If a CrashReport exists that matches, then it gets added to CrashReport.Individual.

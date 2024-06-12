@@ -45,7 +45,7 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		}
 	}
 	if hasLog {
-		b.m.HandleFunc("POST /count/{uuid}", b.countLog)
+		b.m.HandleFunc("POST /count", b.countLog)
 		b.m.HandleFunc("GET /count", b.getCount)
 	}
 	if hasCrash {
@@ -59,8 +59,7 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 
 func (b *Backend) cleanupLoop() {
 	for range time.Tick(24 * time.Hour) {
-		oldTim := time.Now().Add(-30 * 24 * time.Hour)
-		old := (oldTim.Year() * 10000) + (int(oldTim.Month()) * 100) + oldTim.Day()
+		old := getDate(time.Now().Add(-30 * 24 * time.Hour))
 		for _, a := range b.apps {
 			tab := a.CountTable()
 			if tab == nil {
@@ -69,6 +68,10 @@ func (b *Backend) cleanupLoop() {
 			tab.RemoveOldLogs(old)
 		}
 	}
+}
+
+func getDate(t time.Time) int {
+	return (t.Year() * 10000) + (int(t.Month()) * 100) + t.Day()
 }
 
 func (b *Backend) EnableManagementKey(managementID string) {

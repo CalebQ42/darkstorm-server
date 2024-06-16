@@ -76,6 +76,10 @@ func (b *Backend) cleanupLoop() {
 	}
 }
 
+func (b *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	b.m.ServeHTTP(w, r)
+}
+
 func getDate(t time.Time) int {
 	return (t.Year() * 10000) + (int(t.Month()) * 100) + t.Day()
 }

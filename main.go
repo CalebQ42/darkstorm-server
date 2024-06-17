@@ -1,48 +1,55 @@
 package main
 
 import (
+	"context"
+	"crypto/tls"
 	"flag"
 	"log"
-	"time"
+	"net/http"
+	"path/filepath"
+
+	"github.com/CalebQ42/darkstorm-server/internal/blog"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-var quitChan chan string = make(chan string)
+var (
+	mongoClient *mongo.Client
+	blogApp     *blog.BlogApp
+)
 
 func main() {
-	mongoStr := flag.String("mongo", "", "MongoDB connection string for APIs")
+	mongoURL := flag.String("mongo", "", "Enables MongoDB usage for Darkstorm backend.")
+	webRoot := flag.String("web-root", "", "Sets root directory of web server.")
 	flag.Parse()
-	go linker()
-	go webserver(*mongoStr)
-	go startSMTPServer()
-	for failure := <-quitChan; ; failure = <-quitChan {
-		switch failure {
-		case "tcp conf":
-			continue
-		case "tcp err":
-			go tcpLinkerRestart()
-		case "web arg":
-			continue
-		case "web err":
-			go websiteRestart(*mongoStr)
-		case "smtp arg":
-			continue
-		case "smtp err":
-			//TODO: restart smtp server
-			continue
-		}
+	if flag.NArg() != 1 {
+		log.Fatal("You must specify key directory. ex: darkstorm-server /etc/web-keys")
 	}
+	if *mongoURL == "" || *webRoot == "" {
+		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE (Death noises).")
+	}
+	mux := http.NewServeMux()
+	mongoClient = setupMongo(*mongoURL)
+	setupBackend(mux)
+	setupWebsite(mux, *webRoot)
+	http.ListenAndServeTLS(":443", filepath.Join(flag.Arg(0), "cert.pem"), filepath.Join(flag.Arg(0), "key.pem"), mux)
 }
 
-func tcpLinkerRestart() {
-	log.Println("TCP linker failed. Restarting in 5 seconds...")
-	time.Sleep(5 * time.Second)
-	log.Println("Restarting tcp linker")
-	linker()
+func setupMongo(uri string) *mongo.Client {
+	mongoCert, err := tls.LoadX509KeyPair(filepath.Join(flag.Arg(0), "mongo.pem"), filepath.Join(flag.Arg(0)+"key.pem"))
+	if err != nil {
+		log.Fatal("error loading mongo keys:", err)
+	}
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri).SetTLSConfig(&tls.Config{
+		Certificates: []tls.Certificate{mongoCert},
+	}))
+	if err != nil {
+		log.Fatal("error connecting to mongo:", err)
+	}
+	return client
 }
 
-func websiteRestart(mongoStr string) {
-	log.Println("Website failed. Restarting in 5 seconds...")
-	time.Sleep(5 * time.Second)
-	log.Println("Restarting website")
-	webserver(mongoStr)
+func setupWebsite(mux *http.ServeMux, root string) {}
+
+func setupBackend(mux *http.ServeMux) {
 }

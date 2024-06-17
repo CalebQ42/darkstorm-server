@@ -80,6 +80,8 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 // If the check if failed, ReturnError will be called and the returned *ParsedHeader will be nil.
 // If token is present but invalid, no error will be returned just ParsedHeader.User will be nil.
 // The error return will only be populated on "internal" errors and should *probably* be logged.
+//
+// This function does not check the Key's appID so after calling VerifyHeader it's recommended to check the Key's appID.
 func (b *Backend) VerifyHeader(w http.ResponseWriter, r *http.Request, keyPerm string, allowManagementKey bool) (*ParsedHeader, error) {
 	hdr, err := b.ParseHeader(r)
 	if hdr == nil || hdr.Key == nil {

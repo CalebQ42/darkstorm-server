@@ -16,7 +16,7 @@ type Author struct {
 	PicURL string `json:"picurl" bson:"picurl"`
 }
 
-func (b *BlogApp) AboutCaleb() (*Author, error) {
+func (b *BlogApp) AboutMe() (*Author, error) {
 	res := b.authCol.FindOne(context.Background(), bson.M{"_id": "caleb_gardner"})
 	if res.Err() != nil {
 		log.Println("error getting about me:", res.Err())
@@ -35,7 +35,7 @@ func (b *BlogApp) AboutCaleb() (*Author, error) {
 }
 
 func (b *BlogApp) GetAuthorInfo(w http.ResponseWriter, r *http.Request) {
-
+	//TODO
 }
 
 func (b *BlogApp) SetAuthorInfo(w http.ResponseWriter, r *http.Request) {

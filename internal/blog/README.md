@@ -6,9 +6,43 @@ A simple blog module for darkstorm-backend.
 
 ### Author info
 
+#### Get author info
+
 > GET /author/{authorID}
 
 ```json
+{
+    id: "authorID",
+    about: "about",
+    picurl: "picture URL"
+}
+```
+
+#### Update author info
+
+> POST /author/{authorID}
+
+Must have a auth token for a user with the `"blog": "admin"` permission.
+
+```json
+{
+    about: "about",
+    picurl: "picture url"
+}
+```
+
+#### Add Author info
+
+> POST /author
+
+Must have a auth token for a user with the `"blog": "admin"` permission.
+
+```json
+{
+    id: "authorID",
+    about: "about",
+    picurl: "picture URL"
+}
 ```
 
 ### Blog
@@ -28,6 +62,47 @@ Return:
     favicon: "favicon url",
     title: "blog title",
     blog: "blog", // blog will have been converted to HTML
+}
+```
+
+#### Create blog
+
+Request:
+
+> POST /blog
+
+Must have a auth token for a user with the `"blog": "admin"` permission.
+
+```json
+{
+    author: "authorID",
+    favicon: "favicon url",
+    title: "blog title",
+    blog: "blog", // blog will have been converted to HTML
+}
+```
+
+Return:
+
+```json
+{
+    id: "blogID"
+}
+```
+
+#### Update blog
+
+Request:
+
+> POST /blog/{blogID}
+
+Must have a auth token for a user with the `"blog": "admin"` permission.
+
+```json
+{
+    favicon: "new icon",
+    title: "new title",
+    blog: "new blog content"
 }
 ```
 

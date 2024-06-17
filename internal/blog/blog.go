@@ -77,6 +77,14 @@ func (b *BlogApp) Blog(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(blog)
 }
 
+func (b *BlogApp) CreateBlog(w http.ResponseWriter, r *http.Request) {
+	//TODO
+}
+
+func (b *BlogApp) UpdateBlog(w http.ResponseWriter, r *http.Request) {
+	//TODO
+}
+
 func (b *BlogApp) GetLatestBlogs(page int64) ([]Blog, error) {
 	res, err := b.blogCol.Find(context.Background(), bson.M{}, options.Find().
 		SetSort(bson.M{"createTime": 1}).

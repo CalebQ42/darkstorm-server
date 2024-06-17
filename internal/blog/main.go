@@ -20,8 +20,11 @@ func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *Blo
 		authCol: db.Collection("author"),
 	}
 	// setup mux
-	mux.HandleFunc("GET /blog/", out.LatestBlogs)
+	mux.HandleFunc("GET /blog", out.LatestBlogs)
+	mux.HandleFunc("GET /blog/list", out.BlogList)
 	mux.HandleFunc("GET /blog/{blogID}", out.Blog)
+
+	mux.HandleFunc("POST /blog", out.CreateBlog)
 	//TODO
 	return out
 }

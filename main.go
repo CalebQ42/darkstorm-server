@@ -29,7 +29,7 @@ func main() {
 		log.Fatal("You must specify key directory. ex: darkstorm-server /etc/web-keys")
 	}
 	if *mongoURL == "" || *webRoot == "" {
-		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE (Death noises).")
+		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE, OH NO, THEIR COMING FOR ME.... **DEATH NOISES**")
 	}
 	go func() {
 		http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect))

@@ -28,3 +28,15 @@ func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *Blo
 	//TODO
 	return out
 }
+
+func (b *BlogApp) AppID() string {
+	return "blog"
+}
+
+func (b *BlogApp) CountTable() backend.CountTable {
+	return nil
+}
+
+func (b *BlogApp) CrashTable() backend.CrashTable {
+	return nil
+}

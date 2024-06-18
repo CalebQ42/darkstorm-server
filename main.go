@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/CalebQ42/darkstorm-server/internal/backend"
+	"github.com/CalebQ42/darkstorm-server/internal/backend/db"
 	"github.com/CalebQ42/darkstorm-server/internal/blog"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -15,6 +17,7 @@ import (
 
 var (
 	mongoClient *mongo.Client
+	back        *backend.Backend
 	blogApp     *blog.BlogApp
 )
 
@@ -28,28 +31,42 @@ func main() {
 	if *mongoURL == "" || *webRoot == "" {
 		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE (Death noises).")
 	}
+	go func() {
+		http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect))
+	}()
 	mux := http.NewServeMux()
-	mongoClient = setupMongo(*mongoURL)
+	setupMongo(*mongoURL)
 	setupBackend(mux)
 	setupWebsite(mux, *webRoot)
-	http.ListenAndServeTLS(":443", filepath.Join(flag.Arg(0), "cert.pem"), filepath.Join(flag.Arg(0), "key.pem"), mux)
+	serv := &http.Server{
+		Addr:    ":443",
+		Handler: mux,
+	}
+	err := serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "cert.pem"), filepath.Join(flag.Arg(0), "key.pem"))
+	log.Println("webserver closed:", err)
 }
 
-func setupMongo(uri string) *mongo.Client {
+func setupMongo(uri string) {
 	mongoCert, err := tls.LoadX509KeyPair(filepath.Join(flag.Arg(0), "mongo.pem"), filepath.Join(flag.Arg(0)+"key.pem"))
 	if err != nil {
 		log.Fatal("error loading mongo keys:", err)
 	}
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(uri).SetTLSConfig(&tls.Config{
+	mongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(uri).SetTLSConfig(&tls.Config{
 		Certificates: []tls.Certificate{mongoCert},
 	}))
 	if err != nil {
 		log.Fatal("error connecting to mongo:", err)
 	}
-	return client
+}
+
+func setupBackend(mux *http.ServeMux) {
+	blogApp = blog.NewBlogApp(back, mongoClient.Database("blog"), mux)
+	//TODO: SWAssistant and CDR backends
+	var err error
+	back, err = backend.NewBackend(db.NewMongoTable[backend.ApiKey](mongoClient.Database("darkstorm").Collection("keys")), blogApp)
+	if err != nil {
+		log.Fatal("error setting up backend:", err)
+	}
 }
 
 func setupWebsite(mux *http.ServeMux, root string) {}
-
-func setupBackend(mux *http.ServeMux) {
-}

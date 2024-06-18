@@ -2,6 +2,7 @@ package backend
 
 import (
 	"crypto/ed25519"
+	"embed"
 	"encoding/json"
 	"errors"
 	"log"
@@ -10,17 +11,23 @@ import (
 	"time"
 )
 
+//go:embed embed/*
+var robotEmbed embed.FS
+
+// A simple backend that handles user authentication, user count, and crash reports.
 type Backend struct {
 	userTable       Table[User]
 	keyTable        Table[ApiKey]
 	m               *http.ServeMux
 	apps            map[string]App
 	managementKeyID string
+	corsAddr        string
 	jwtPriv         ed25519.PrivateKey
 	jwtPub          ed25519.PublicKey
 	userMutex       sync.RWMutex
 }
 
+// Create a new Backend with the given apps. keyTable must be specified.
 func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 	b := &Backend{
 		keyTable:  keyTable,
@@ -28,6 +35,7 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		apps:      make(map[string]App),
 		userMutex: sync.RWMutex{},
 	}
+	b.m.Handle("GET /robots.txt", http.FileServerFS(robotEmbed))
 	var hasLog, hasCrash bool
 	for i := range apps {
 		_, has := b.apps[apps[i].AppID()]
@@ -76,7 +84,21 @@ func (b *Backend) cleanupLoop() {
 	}
 }
 
+// Enable CORS for with the given cors address
+func (b *Backend) AddCorsAddress(corsAddr string) {
+	b.corsAddr = corsAddr
+}
+
+// http.Handler
 func (b *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if b.corsAddr != "" {
+		w.Header().Set("Access-Control-Allow-Origin", b.corsAddr)
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+		}
+	}
 	b.m.ServeHTTP(w, r)
 }
 
@@ -84,6 +106,7 @@ func getDate(t time.Time) int {
 	return (t.Year() * 10000) + (int(t.Month()) * 100) + t.Day()
 }
 
+// Enables the use of a management API key for crash and count.
 func (b *Backend) EnableManagementKey(managementID string) {
 	b.managementKeyID = managementID
 	b.m.HandleFunc("DELETE /{appID}/crash/{crashID}", b.managementDeleteCrash)
@@ -91,6 +114,7 @@ func (b *Backend) EnableManagementKey(managementID string) {
 	b.m.HandleFunc("GET /{appID}/count", b.getCount)
 }
 
+// Enables user creation and authentication.
 func (b *Backend) AddUserAuth(userTable Table[User], privKey, pubKey []byte) {
 	b.userTable = userTable
 	b.jwtPriv = privKey
@@ -113,6 +137,7 @@ type retError struct {
 	ErrorMsg  string `json:"errorMsg"`
 }
 
+// Return an error response with the given status code, code, and message.
 func ReturnError(w http.ResponseWriter, status int, code, msg string) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(retError{

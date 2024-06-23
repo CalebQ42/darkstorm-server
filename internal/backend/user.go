@@ -141,6 +141,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	defer b.userMutex.Unlock()
 	matchUsername, err := b.userTable.Find(map[string]any{"username": req.Username})
 	if err != nil && !errors.Is(err, ErrNotFound) {
+		log.Println("error when checking for username collisions:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	} else if (err == nil || errors.Is(err, ErrNotFound)) && len(matchUsername) > 0 {
@@ -149,6 +150,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	matchEmail, err := b.userTable.Find(map[string]any{"email": req.Email})
 	if err != nil && !errors.Is(err, ErrNotFound) {
+		log.Println("error when checking for email collisions:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	} else if (err == nil || errors.Is(err, ErrNotFound)) && len(matchEmail) > 0 {
@@ -157,11 +159,13 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	u, err := NewUser(req.Username, req.Password, req.Email)
 	if err != nil {
+		log.Println("error creating new user:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
 	err = b.userTable.Insert(u)
 	if err != nil {
+		log.Println("error inserting new user:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
@@ -169,6 +173,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	ret.Username = u.Username
 	ret.Token, err = b.GenerateJWT(u.toReqUser())
 	if err != nil {
+		log.Println("error generating token:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
@@ -243,12 +248,14 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	}
 	hash, err := u.HashPassword(req.Password)
 	if err != nil {
+		log.Println("error hashing request password:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
 	if u.Password == hash {
 		ret.Token, err = b.GenerateJWT(u.toReqUser())
 		if err != nil {
+			log.Println("error generating token:", err)
 			ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 			return
 		}

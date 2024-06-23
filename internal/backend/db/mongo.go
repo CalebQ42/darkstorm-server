@@ -68,8 +68,12 @@ func (m *MongoTable[T]) PartUpdate(ID string, update map[string]any) error {
 	return res.Err()
 }
 
-func (m *MongoTable[CountLog]) RemoveOldLogs(date int) {
-	m.col.DeleteMany(context.Background(), bson.M{"date": bson.M{"$lt": date}})
+func (m *MongoTable[CountLog]) RemoveOldLogs(date int) error {
+	_, err := m.col.DeleteMany(context.Background(), bson.M{"date": bson.M{"$lt": date}})
+	if err == mongo.ErrNoDocuments {
+		return nil
+	}
+	return err
 }
 func (m *MongoTable[CountLog]) Count(platform string) (int, error) {
 	var filter bson.M

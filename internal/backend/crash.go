@@ -172,6 +172,7 @@ func (b *Backend) actualCrashArchive(w http.ResponseWriter, ap App, toArchive Ar
 	if err == ErrNotFound {
 		return
 	} else if err != nil {
+		log.Println("error finding matching crashes:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}

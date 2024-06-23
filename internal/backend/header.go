@@ -85,7 +85,7 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 func (b *Backend) VerifyHeader(w http.ResponseWriter, r *http.Request, keyPerm string, allowManagementKey bool) (*ParsedHeader, error) {
 	hdr, err := b.ParseHeader(r)
 	if hdr == nil || hdr.Key == nil {
-		if err != ErrApiKeyUnauthorized {
+		if err == ErrApiKeyUnauthorized {
 			ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 			return nil, nil
 		}

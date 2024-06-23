@@ -29,7 +29,7 @@ func main() {
 		log.Fatal("You must specify key directory. ex: darkstorm-server /etc/web-keys")
 	}
 	if *mongoURL == "" || *webRoot == "" {
-		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE, OH NO, THEIR COMING FOR ME.... **DEATH NOISES**")
+		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE, OH NO, THEY'RE COMING FOR ME.... **DEATH NOISES**")
 	}
 	go func() {
 		http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect))
@@ -60,13 +60,26 @@ func setupMongo(uri string) {
 }
 
 func setupBackend(mux *http.ServeMux) {
+	testApp := backend.NewSimpleApp("testing",
+		db.NewMongoTable[backend.CountLog](mongoClient.Database("testing").Collection("count")),
+		db.NewMongoCrashTable(
+			mongoClient.Database("testing").Collection("crash"),
+			mongoClient.Database("testing").Collection("archive"),
+		))
 	blogApp = blog.NewBlogApp(back, mongoClient.Database("blog"), mux)
 	//TODO: SWAssistant and CDR backends
 	var err error
-	back, err = backend.NewBackend(db.NewMongoTable[backend.ApiKey](mongoClient.Database("darkstorm").Collection("keys")), blogApp)
+	back, err = backend.NewBackend(db.NewMongoTable[backend.ApiKey](
+		mongoClient.Database("darkstorm").Collection("keys")),
+		testApp,
+		blogApp,
+	)
 	if err != nil {
 		log.Fatal("error setting up backend:", err)
 	}
+	mux.Handle("/", back)
 }
 
-func setupWebsite(mux *http.ServeMux, root string) {}
+func setupWebsite(mux *http.ServeMux, root string) {
+	//TODO
+}

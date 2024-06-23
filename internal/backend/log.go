@@ -68,6 +68,7 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 	}
 	err = count.PartUpdate(req.ID, map[string]any{"date": curDate})
 	if err != nil {
+		log.Println("error updating count log:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
@@ -122,6 +123,7 @@ func (b *Backend) getCount(w http.ResponseWriter, r *http.Request) {
 	}
 	out, err := count.Count(r.URL.Query().Get("platform"))
 	if err != nil {
+		log.Println("error getting count:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}

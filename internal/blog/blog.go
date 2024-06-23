@@ -119,6 +119,7 @@ func (b *BlogApp) LatestBlogs(w http.ResponseWriter, r *http.Request) {
 	}
 	blogs, err := b.GetLatestBlogs(int64(page))
 	if err != nil && err != backend.ErrNotFound {
+		log.Println("error getting latest blogs:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "internal error")
 		return
 	}
@@ -168,6 +169,7 @@ func (b *BlogApp) BlogList(w http.ResponseWriter, r *http.Request) {
 	}
 	blogList, err := b.GetBlogList(int64(page))
 	if err != nil && err != backend.ErrNotFound {
+		log.Println("error getting blog list:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "internal error")
 		return
 	}

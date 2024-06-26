@@ -34,7 +34,7 @@ func (c CrashReport) GetID() string {
 func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "crash", false)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return
@@ -67,7 +67,7 @@ func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
 func (b *Backend) deleteCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "management", false)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return
@@ -83,7 +83,7 @@ func (b *Backend) deleteCrash(w http.ResponseWriter, r *http.Request) {
 func (b *Backend) managementDeleteCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "management", true)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return
@@ -117,7 +117,7 @@ func (b *Backend) actualCrashDelete(w http.ResponseWriter, ap App, crashID strin
 func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "management", false)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return
@@ -135,7 +135,7 @@ func (b *Backend) archiveCrash(w http.ResponseWriter, r *http.Request) {
 func (b *Backend) managementArchiveCrash(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "management", true)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return

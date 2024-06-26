@@ -120,7 +120,7 @@ type createUserReturn struct {
 func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "user", false)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return
@@ -184,7 +184,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 func (b *Backend) deleteUser(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "management", true)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return
@@ -216,7 +216,7 @@ type loginReturn struct {
 func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "user", false)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return

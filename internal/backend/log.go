@@ -27,7 +27,7 @@ type countLogReq struct {
 func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "count", false)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return
@@ -101,7 +101,7 @@ func addToCountTable(w http.ResponseWriter, c CountTable, platform string, curDa
 func (b *Backend) getCount(w http.ResponseWriter, r *http.Request) {
 	hdr, err := b.VerifyHeader(w, r, "management", true)
 	if hdr == nil {
-		if err == nil {
+		if err != nil {
 			log.Println("request key parsing error:", err)
 		}
 		return

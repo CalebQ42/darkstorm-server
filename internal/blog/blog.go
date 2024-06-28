@@ -23,9 +23,9 @@ type Blog struct {
 	UpdateTime int    `json:"updateTime" bson:"updateTime"`
 }
 
-func (b *Blog) ConvertBlog() {
+func (b *BlogApp) ConvertBlog(blog *Blog) {
 	//TODO: parse BBCode/Markdown from blog
-	//b.Blog = bbCodeConvert(b.Blog)
+	blog.Blog = b.conv.Convert(blog.Blog)
 }
 
 func (b *BlogApp) GetAuthor(blog *Blog) (*Author, error) {
@@ -54,7 +54,7 @@ func (b *BlogApp) GetBlog(ID string) (*Blog, error) {
 	if err != nil {
 		return nil, err
 	}
-	blog.ConvertBlog()
+	b.ConvertBlog(&blog)
 	return &blog, nil
 }
 
@@ -78,7 +78,15 @@ func (b *BlogApp) Blog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *BlogApp) CreateBlog(w http.ResponseWriter, r *http.Request) {
-	//TODO
+	hdr, err := b.back.ParseHeader(r)
+	if err != nil{
+		if err == backend.ErrApiKeyUnauthorized{
+			backend.ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application unauthorized")
+			return
+		}else if err == backend.ErrTokenUnauthorized{
+			backend.ReturnError(w, http.StatusUnauthorized, "")
+		}
+	}
 }
 
 func (b *BlogApp) UpdateBlog(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +110,7 @@ func (b *BlogApp) GetLatestBlogs(page int64) ([]Blog, error) {
 		return nil, err
 	}
 	for i := range out {
-		out[i].ConvertBlog()
+		b.ConvertBlog(&out[i])
 	}
 	return out, nil
 }

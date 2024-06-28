@@ -14,13 +14,24 @@ var (
 	ErrTokenUnauthorized  = errors.New("token present but invalid")
 )
 
+type ApiKey struct {
+	Perm  map[string]bool `json:"perm" bson:"perm"`
+	ID    string          `json:"id" bson:"_id" valkey:",key"`
+	AppID string          `json:"appID" bson:"appID"`
+	Death int64           `json:"death" bson:"death"`
+}
+
+func (k ApiKey) GetID() string {
+	return k.ID
+}
+
 type ParsedHeader struct {
 	User *ReqestUser
 	Key  *ApiKey
 }
 
 // Parses the X-API-Key and Authorization headers. If the API Key provided but invalid (either due to expiring or isn't found), ErrApiKeyUnauthorized is returned.
-// If the Authorization header is present but invalid, ErrTokenUnauthorized is part of the returned error (check with errors.Is).
+// If the Authorization header is present but invalid, ErrTokenUnauthorized is returned.
 // NOTE: An invalid apiKey will cause a nil return, but a invalid token will not. Token parsing is only
 func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 	out := &ParsedHeader{}

@@ -75,7 +75,6 @@ Must have a auth token for a user with the `"blog": "admin"` permission.
 
 ```json
 {
-    author: "authorID",
     favicon: "favicon url",
     title: "blog title",
     blog: "blog", // blog will have been converted to HTML

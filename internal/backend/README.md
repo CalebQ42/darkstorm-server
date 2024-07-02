@@ -111,6 +111,8 @@ If an error status code is returned then the body will be as follows.
   * API Key is invalid or does not have the needed permission for the request.
 * invalidBody
   * Body of the request is malformed.
+* unauthorized
+  * User is not authorized for the given task or no user token is given.
 * badRequest
   * Some part of your request is invalid
 * internal

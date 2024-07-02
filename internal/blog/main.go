@@ -24,11 +24,15 @@ func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *Blo
 	}
 	out.conv.ImplementDefaults()
 	// setup mux
-	mux.HandleFunc("GET /blog", out.LatestBlogs)
-	mux.HandleFunc("GET /blog/list", out.BlogList)
-	mux.HandleFunc("GET /blog/{blogID}", out.Blog)
+	mux.HandleFunc("GET /blog", out.reqLatestBlogs)
+	mux.HandleFunc("GET /blog/list", out.reqBlogList)
+	mux.HandleFunc("GET /blog/{blogID}", out.reqBlog)
+	mux.HandleFunc("POST /blog", out.createBlog)
+	mux.HandleFunc("POST /blog/{blogID}", out.updateBlog)
 
-	mux.HandleFunc("POST /blog", out.CreateBlog)
+	mux.HandleFunc("GET /author/{authorID}", out.reqAuthorInfo)
+	mux.HandleFunc("POST /author", out.addAuthorInfo)
+	mux.HandleFunc("POST /author/{authorID}", out.updateAuthorInfo)
 	//TODO
 	return out
 }

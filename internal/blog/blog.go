@@ -6,8 +6,10 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -19,8 +21,8 @@ type Blog struct {
 	Favicon    string `json:"favicon" bson:"favicon"`
 	Title      string `json:"title" bson:"title"`
 	Blog       string `json:"blog" bson:"blog"`
-	CreateTime int    `json:"createTime" bson:"createTime"`
-	UpdateTime int    `json:"updateTime" bson:"updateTime"`
+	CreateTime int64  `json:"createTime" bson:"createTime"`
+	UpdateTime int64  `json:"updateTime" bson:"updateTime"`
 }
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {
@@ -41,7 +43,7 @@ func (b *BlogApp) GetAuthor(blog *Blog) (*Author, error) {
 	return &author, err
 }
 
-func (b *BlogApp) GetBlog(ID string) (*Blog, error) {
+func (b *BlogApp) Blog(ID string) (*Blog, error) {
 	res := b.blogCol.FindOne(context.Background(), bson.M{"_id": ID})
 	if res.Err() != nil {
 		if res.Err() == mongo.ErrNoDocuments {
@@ -58,13 +60,13 @@ func (b *BlogApp) GetBlog(ID string) (*Blog, error) {
 	return &blog, nil
 }
 
-func (b *BlogApp) Blog(w http.ResponseWriter, r *http.Request) {
+func (b *BlogApp) reqBlog(w http.ResponseWriter, r *http.Request) {
 	blogID := r.PathValue("blogID")
 	if blogID == "" {
 		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Must provide a blogID")
 		return
 	}
-	blog, err := b.GetBlog(blogID)
+	blog, err := b.Blog(blogID)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			backend.ReturnError(w, http.StatusNotFound, "notFound", "Not blog found with the given ID")
@@ -77,23 +79,102 @@ func (b *BlogApp) Blog(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(blog)
 }
 
-func (b *BlogApp) CreateBlog(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.back.ParseHeader(r)
-	if err != nil{
-		if err == backend.ErrApiKeyUnauthorized{
-			backend.ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application unauthorized")
-			return
-		}else if err == backend.ErrTokenUnauthorized{
-			backend.ReturnError(w, http.StatusUnauthorized, "")
+func (b *BlogApp) createBlog(w http.ResponseWriter, r *http.Request) {
+	hdr, err := b.back.VerifyHeader(w, r, "blogManagement", false)
+	if hdr == nil {
+		if err != nil {
+			log.Println("request key parsing error:", err)
 		}
+		return
+	} else if hdr.Key.AppID != "blog" {
+		backend.ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application is unauthorized")
+		return
 	}
+	if hdr.User == nil || hdr.User.Perm["blog"] != "admin" {
+		backend.ReturnError(w, http.StatusUnauthorized, "unauthorized", "Application is unauthorized")
+		return
+	}
+	var newBlog Blog
+	err = json.NewDecoder(r.Body).Decode(&newBlog)
+	r.Body.Close()
+	if err != nil {
+		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Bad request")
+		return
+	}
+	id, err := uuid.NewV7()
+	if err != nil {
+		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
+		return
+	}
+	tim := time.Now().Unix()
+	newBlog.ID = id.String()
+	newBlog.CreateTime = tim
+	newBlog.UpdateTime = tim
+	newBlog.Author = hdr.User.Username
+	_, err = b.blogCol.InsertOne(context.Background(), newBlog)
+	if err != nil {
+		log.Println("error when inserting new blog:", err)
+		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+
 }
 
-func (b *BlogApp) UpdateBlog(w http.ResponseWriter, r *http.Request) {
-	//TODO
+func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
+	hdr, err := b.back.VerifyHeader(w, r, "blogManagement", false)
+	if hdr == nil {
+		if err != nil {
+			log.Println("request key parsing error:", err)
+		}
+		return
+	} else if hdr.Key.AppID != "blog" {
+		backend.ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application is unauthorized")
+		return
+	}
+	if hdr.User == nil || hdr.User.Perm["blog"] != "admin" {
+		backend.ReturnError(w, http.StatusUnauthorized, "unauthorized", "Application is unauthorized")
+		return
+	}
+	if r.PathValue("blogID") == "" {
+		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Bad request")
+		return
+	}
+	var reqUpdRaw map[string]string
+	err = json.NewDecoder(r.Body).Decode(&reqUpdRaw)
+	r.Body.Close()
+	if err != nil {
+		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Bad request")
+		return
+	}
+	reqUpd := bson.M{}
+	if fav, ok := reqUpdRaw["favicon"]; ok && fav != "" {
+		reqUpd["favicon"] = fav
+	}
+	if titl, ok := reqUpdRaw["title"]; ok && titl != "" {
+		reqUpd["title"] = titl
+	}
+	if blog, ok := reqUpdRaw["blog"]; ok && blog != "" {
+		reqUpd["blog"] = blog
+	}
+	reqUpd["updateTime"] = time.Now().Unix()
+	res, err := b.blogCol.UpdateByID(context.Background(), r.PathValue("blogID"), reqUpd)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
+		} else {
+			backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
+		}
+		return
+	}
+	if res.MatchedCount == 0 {
+		backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 
-func (b *BlogApp) GetLatestBlogs(page int64) ([]Blog, error) {
+func (b *BlogApp) LatestBlogs(page int64) ([]Blog, error) {
 	res, err := b.blogCol.Find(context.Background(), bson.M{}, options.Find().
 		SetSort(bson.M{"createTime": 1}).
 		SetLimit(5).
@@ -115,7 +196,7 @@ func (b *BlogApp) GetLatestBlogs(page int64) ([]Blog, error) {
 	return out, nil
 }
 
-func (b *BlogApp) LatestBlogs(w http.ResponseWriter, r *http.Request) {
+func (b *BlogApp) reqLatestBlogs(w http.ResponseWriter, r *http.Request) {
 	var page int
 	var err error
 	pagQuery := r.URL.Query().Get("page")
@@ -125,7 +206,7 @@ func (b *BlogApp) LatestBlogs(w http.ResponseWriter, r *http.Request) {
 			page = 0
 		}
 	}
-	blogs, err := b.GetLatestBlogs(int64(page))
+	blogs, err := b.LatestBlogs(int64(page))
 	if err != nil && err != backend.ErrNotFound {
 		log.Println("error getting latest blogs:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "internal error")
@@ -145,7 +226,7 @@ type BlogListResult struct {
 	CreateTime int    `json:"createTime" bson:"createTime"`
 }
 
-func (b *BlogApp) GetBlogList(page int64) ([]BlogListResult, error) {
+func (b *BlogApp) BlogList(page int64) ([]BlogListResult, error) {
 	res, err := b.blogCol.Find(context.Background(), bson.M{}, options.Find().
 		SetProjection(bson.M{"_id": 1, "createTime": 1}).
 		SetSort(bson.M{"createTime": 1}).
@@ -165,7 +246,7 @@ func (b *BlogApp) GetBlogList(page int64) ([]BlogListResult, error) {
 	return out, nil
 }
 
-func (b *BlogApp) BlogList(w http.ResponseWriter, r *http.Request) {
+func (b *BlogApp) reqBlogList(w http.ResponseWriter, r *http.Request) {
 	var page int
 	var err error
 	pagQuery := r.URL.Query().Get("page")
@@ -175,7 +256,7 @@ func (b *BlogApp) BlogList(w http.ResponseWriter, r *http.Request) {
 			page = 0
 		}
 	}
-	blogList, err := b.GetBlogList(int64(page))
+	blogList, err := b.BlogList(int64(page))
 	if err != nil && err != backend.ErrNotFound {
 		log.Println("error getting blog list:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "internal error")

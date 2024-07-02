@@ -13,6 +13,7 @@ A simple blog module for darkstorm-backend.
 ```json
 {
     id: "authorID",
+    name: "author name",
     about: "about",
     picurl: "picture URL"
 }
@@ -26,6 +27,7 @@ Must have a auth token for a user with the `"blog": "admin"` permission.
 
 ```json
 {
+    name: "author name",
     about: "about",
     picurl: "picture url"
 }

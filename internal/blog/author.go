@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 	"go.mongodb.org/mongo-driver/bson"
@@ -71,7 +73,35 @@ func (b *BlogApp) addAuthorInfo(w http.ResponseWriter, r *http.Request) {
 		backend.ReturnError(w, http.StatusUnauthorized, "unauthorized", "Application is unauthorized")
 		return
 	}
-	//TODO
+	var newAuth Author
+	err = json.NewDecoder(r.Body).Decode(&newAuth)
+	r.Body.Close()
+	if err != nil {
+		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Invalid request")
+		return
+	}
+	for i := 1; ; i++ {
+		newID := strings.ReplaceAll(newAuth.Name, " ", "-")
+		if i != 1 {
+			newID += strconv.Itoa(i)
+		}
+		collisionCheck := b.authCol.FindOne(context.Background(), bson.M{"name": newAuth.Name})
+		if collisionCheck.Err() == mongo.ErrNoDocuments {
+			newAuth.ID = newID
+			break
+		} else if collisionCheck.Err() != nil {
+			log.Println("error checking for new author ID collisions:", err)
+			backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
+			return
+		}
+	}
+	_, err = b.authCol.InsertOne(context.Background(), newAuth)
+	if err != nil {
+		log.Println("error inserting new author:", err)
+		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (b *BlogApp) updateAuthorInfo(w http.ResponseWriter, r *http.Request) {
@@ -89,5 +119,35 @@ func (b *BlogApp) updateAuthorInfo(w http.ResponseWriter, r *http.Request) {
 		backend.ReturnError(w, http.StatusUnauthorized, "unauthorized", "Application is unauthorized")
 		return
 	}
-	//TODO
+	var rawUpd map[string]string
+	err = json.NewDecoder(r.Body).Decode(&rawUpd)
+	r.Body.Close()
+	if err != nil {
+		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Invalid request")
+		return
+	}
+	actlUpd := make(map[string]string)
+	if rawUpd["name"] != "" {
+		actlUpd["name"] = rawUpd["name"]
+	}
+	if rawUpd["about"] != "" {
+		actlUpd["about"] = rawUpd["about"]
+	}
+	if rawUpd["picurl"] != "" {
+		actlUpd["picurl"] = rawUpd["picurl"]
+	}
+	res, err := b.authCol.UpdateByID(context.Background(), r.PathValue("authorID"), actlUpd)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
+		} else {
+			backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
+		}
+		return
+	}
+	if res.MatchedCount == 0 {
+		backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
 }

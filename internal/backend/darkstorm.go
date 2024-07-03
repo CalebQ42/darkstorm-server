@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-//go:embed embed/*
+//go:embed robots.txt
 var robotEmbed embed.FS
 
 // A simple backend that handles user authentication, user count, and crash reports.

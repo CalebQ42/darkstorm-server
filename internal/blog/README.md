@@ -41,7 +41,7 @@ Must have a auth token for a user with the `"blog": "admin"` permission.
 
 ```json
 {
-    id: "authorID",
+    name: "author name",
     about: "about",
     picurl: "picture URL"
 }

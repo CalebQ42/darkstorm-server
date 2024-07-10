@@ -33,7 +33,6 @@ func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *Blo
 	mux.HandleFunc("GET /author/{authorID}", out.reqAuthorInfo)
 	mux.HandleFunc("POST /author", out.addAuthorInfo)
 	mux.HandleFunc("POST /author/{authorID}", out.updateAuthorInfo)
-	//TODO
 	return out
 }
 

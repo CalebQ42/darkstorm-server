@@ -9,6 +9,12 @@ type App interface {
 	CrashTable() CrashTable
 }
 
+// Allows for an App to filter crashes before they get added to the DB, such as making sure the crash is from the correct version.
+type CrashFilterApp interface {
+	App
+	AddCrash(IndividualCrash) bool
+}
+
 type ExtendedApp interface {
 	// Extension is called for any calls to /{appID}/
 	// Alternatively, use Backend.HandleFunc for more customizability

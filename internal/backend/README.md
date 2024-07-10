@@ -61,6 +61,7 @@ Users are stored per backend and not per app.
 {
   count: 1, // We do not store duplicates. If a duplicate does occur
   platform: "android",
+  appVersion: "v1.0.0", // Application version
   error: "error",
   stack: "stacktrace"
 }
@@ -279,6 +280,7 @@ Request Body:
 {
   id: "UUID", // This is an ignored value, but it is highly recommended to include it to prevent reporting the same crash multiple times.
   platform: "android",
+  appVersion: "v1.0.0",
   error: "error",
   stack: "stacktrace"
 }

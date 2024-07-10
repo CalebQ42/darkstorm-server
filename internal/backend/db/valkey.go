@@ -2,7 +2,7 @@ package db
 
 /*
 TODO
-Currently there isn't a clean way to implement this (as far as I can tell).
+Currently there isn't a easy and clean way to implement this (as far as I can tell).
 valkey-go relies on an internal library for it's command builder, which makes it impossible to
 use properly for generics without manually writing out the Index command. I could probably do this, but
 it's a pain.

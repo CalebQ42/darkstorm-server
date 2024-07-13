@@ -61,7 +61,7 @@ Users are stored per backend and not per app.
 {
   count: 1, // We do not store duplicates. If a duplicate does occur
   platform: "android",
-  appVersion: "v1.0.0", // Application version
+  version: "v1.0.0", // Application version
   error: "error",
   stack: "stacktrace"
 }

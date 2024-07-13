@@ -19,11 +19,12 @@ var (
 	mongoClient *mongo.Client
 	back        *backend.Backend
 	blogApp     *blog.BlogApp
+	webRoot     *string
 )
 
 func main() {
 	mongoURL := flag.String("mongo", "", "Enables MongoDB usage for Darkstorm backend.")
-	webRoot := flag.String("web-root", "", "Sets root directory of web server.")
+	webRoot = flag.String("web-root", "", "Sets root directory of web server.")
 	flag.Parse()
 	if flag.NArg() != 1 {
 		log.Fatal("You must specify key directory. ex: darkstorm-server /etc/web-keys")
@@ -37,7 +38,7 @@ func main() {
 	mux := http.NewServeMux()
 	setupMongo(*mongoURL)
 	setupBackend(mux)
-	setupWebsite(mux, *webRoot)
+	setupWebsite(mux)
 	serv := &http.Server{
 		Addr:    ":443",
 		Handler: mux,
@@ -80,6 +81,6 @@ func setupBackend(mux *http.ServeMux) {
 	mux.Handle("/", back)
 }
 
-func setupWebsite(mux *http.ServeMux, root string) {
-	//TODO
+func setupWebsite(mux *http.ServeMux) {
+	mux.HandleFunc("GET /files", filesRequest)
 }

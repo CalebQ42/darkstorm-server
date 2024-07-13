@@ -14,11 +14,11 @@ type ArchivedCrash struct {
 }
 
 type IndividualCrash struct {
-	Platform   string `json:"platform" bson:"platform"`
-	AppVersion string `json:"appVersion" bson:"appVersion"`
-	Error      string `json:"error" bson:"error"`
-	Stack      string `json:"stack" bson:"stack"`
-	Count      int    `json:"count" bson:"count"`
+	Platform string `json:"platform" bson:"platform"`
+	Version  string `json:"version" bson:"version"`
+	Error    string `json:"error" bson:"error"`
+	Stack    string `json:"stack" bson:"stack"`
+	Count    int    `json:"count" bson:"count"`
 }
 
 type CrashReport struct {
@@ -44,7 +44,7 @@ func (b *Backend) reportCrash(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var crash IndividualCrash
 	err = json.NewDecoder(r.Body).Decode(&crash)
-	if err != nil || crash.Platform == "" || crash.AppVersion == "" || crash.Error == "" || crash.Stack == "" {
+	if err != nil || crash.Platform == "" || crash.Version == "" || crash.Error == "" || crash.Stack == "" {
 		ReturnError(w, http.StatusBadRequest, "invalidBody", "Bad request")
 		return
 	}

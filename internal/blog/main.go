@@ -9,18 +9,20 @@ import (
 )
 
 type BlogApp struct {
-	back    *backend.Backend
-	blogCol *mongo.Collection
-	authCol *mongo.Collection
-	conv    *bbConvert.HTMLConverter
+	back         *backend.Backend
+	blogCol      *mongo.Collection
+	authCol      *mongo.Collection
+	portfolioCol *mongo.Collection
+	conv         *bbConvert.HTMLConverter
 }
 
 func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *BlogApp {
 	out := &BlogApp{
-		back:    b,
-		blogCol: db.Collection("blog"),
-		authCol: db.Collection("author"),
-		conv:    &bbConvert.HTMLConverter{},
+		back:         b,
+		blogCol:      db.Collection("blog"),
+		authCol:      db.Collection("author"),
+		portfolioCol: db.Collection("portfolio"),
+		conv:         &bbConvert.HTMLConverter{},
 	}
 	out.conv.ImplementDefaults()
 	// setup mux
@@ -33,6 +35,8 @@ func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *Blo
 	mux.HandleFunc("GET /author/{authorID}", out.reqAuthorInfo)
 	mux.HandleFunc("POST /author", out.addAuthorInfo)
 	mux.HandleFunc("POST /author/{authorID}", out.updateAuthorInfo)
+
+	mux.HandleFunc("GET /portfolio", out.reqPortfolio)
 	return out
 }
 

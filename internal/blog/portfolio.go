@@ -1,12 +1,15 @@
 package blog
 
 import (
-	"go.mongodb.org/mongo-driver/mongo"
+	"context"
+	"net/http"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-type project struct {
+type PortfolioProject struct {
 	Title       string `bson:"_id"`
-	Repository  string `bson:"respository"`
+	Repository  string `bson:"repository"`
 	Description string `bson:"description"`
 	Languages   []struct {
 		Language string `bson:"language"`
@@ -14,6 +17,20 @@ type project struct {
 	} `bson:"language"`
 }
 
-func portfolio(client *mongo.Client) {
+func (b *BlogApp) Projects(languageFilter string) ([]PortfolioProject, error) {
+	filter := bson.M{}
+	if languageFilter != "" {
+		filter["language.language"] = languageFilter
+	}
+	res, err := b.portfolioCol.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	var out []PortfolioProject
+	err = res.All(context.Background(), &out)
+	return out, err
+}
+
+func (b *BlogApp) reqPortfolio(w http.ResponseWriter, r *http.Request) {
 	//TODO
 }

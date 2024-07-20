@@ -12,10 +12,10 @@ A simple blog module for darkstorm-backend.
 
 ```json
 {
-    id: "authorID",
-    name: "author name",
-    about: "about",
-    picurl: "picture URL"
+  id: "authorID",
+  name: "author name",
+  about: "about",
+  picurl: "picture URL"
 }
 ```
 
@@ -27,9 +27,9 @@ Must have a auth token for a user with the `"blog": "admin"` permission.
 
 ```json
 {
-    name: "author name",
-    about: "about",
-    picurl: "picture url"
+  name: "author name",
+  about: "about",
+  picurl: "picture url"
 }
 ```
 
@@ -41,9 +41,9 @@ Must have a auth token for a user with the `"blog": "admin"` permission.
 
 ```json
 {
-    name: "author name",
-    about: "about",
-    picurl: "picture URL"
+  name: "author name",
+  about: "about",
+  picurl: "picture URL"
 }
 ```
 
@@ -57,13 +57,13 @@ Return:
 
 ```json
 {
-    id: "blogID",
-    createTime: 0, // creation time in Unix format
-    updateTime: 0, // last update time in Unix format
-    author: "authorID",
-    favicon: "favicon url",
-    title: "blog title",
-    blog: "blog", // blog will have been converted to HTML
+  id: "blogID",
+  createTime: 0, // creation time in Unix format
+  updateTime: 0, // last update time in Unix format
+  author: "authorID",
+  favicon: "favicon url",
+  title: "blog title",
+  blog: "blog", // blog will have been converted to HTML
 }
 ```
 
@@ -77,9 +77,9 @@ Must have a auth token for a user with the `"blog": "admin"` permission.
 
 ```json
 {
-    favicon: "favicon url",
-    title: "blog title",
-    blog: "blog", // blog will have been converted to HTML
+  favicon: "favicon url",
+  title: "blog title",
+  blog: "blog", // blog will have been converted to HTML
 }
 ```
 
@@ -87,7 +87,7 @@ Return:
 
 ```json
 {
-    id: "blogID"
+  id: "blogID"
 }
 ```
 
@@ -101,9 +101,9 @@ Must have a auth token for a user with the `"blog": "admin"` permission.
 
 ```json
 {
-    favicon: "new icon",
-    title: "new title",
-    blog: "new blog content"
+  favicon: "new icon",
+  title: "new title",
+  blog: "new blog content"
 }
 ```
 
@@ -117,19 +117,19 @@ Return:
 
 ```json
 {
-    num: 1, // Number of returned results, returns up to 5 results
-    blogs: [
-        {
-            id: "blogID",
-            createTime: 0, // creation time in Unix format
-            updateTime: 0, // last update time in Unix format
-            author: "authorID",
-            favicon: "favicon url",
-            title: "blog title",
-            blog: "blog", // blog will have been converted to HTML
-        }
-        ...
-    ]
+  num: 1, // Number of returned results, returns up to 5 results
+  blogs: [
+    {
+      id: "blogID",
+      createTime: 0, // creation time in Unix format
+      updateTime: 0, // last update time in Unix format
+      author: "authorID",
+      favicon: "favicon url",
+      title: "blog title",
+      blog: "blog", // blog will have been converted to HTML
+    }
+    ...
+  ]
 }
 ```
 
@@ -143,17 +143,41 @@ Return:
 
 ```json
 {
-    num: 1, // Number of returned results, returns up to 50 results
-    blogList: [
-        {
-            id: "blogID",
-            createTime: 0, // Unix format
-        },
-        {
-            id: "blogID",
-            createTime: 0, // Unix format
-        },
-        ...
-    ]
+  num: 1, // Number of returned results, returns up to 50 results
+  blogList: [
+    {
+      id: "blogID",
+      createTime: 0, // Unix format
+    },
+    {
+      id: "blogID",
+      createTime: 0, // Unix format
+    },
+    ...
+  ]
 }
+```
+
+### Portfolio
+
+#### Get Projects
+
+> GET: /portfolio?lang=go
+
+Return:
+
+```json
+[
+  {
+    title: "title",
+    repository: "https://github.com/CalebQ42/darkstorm-server",
+    description: "The backend that runs runs my website and APIs",
+    language: [
+      {
+        language: "go",
+        dates: "September 2021"
+      }
+    ]
+  }
+]
 ```

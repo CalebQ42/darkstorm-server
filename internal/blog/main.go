@@ -16,7 +16,7 @@ type BlogApp struct {
 	conv         *bbConvert.HTMLConverter
 }
 
-func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *BlogApp {
+func NewBlogApp(b *backend.Backend, db *mongo.Database) *BlogApp {
 	out := &BlogApp{
 		back:         b,
 		blogCol:      db.Collection("blog"),
@@ -25,18 +25,6 @@ func NewBlogApp(b *backend.Backend, db *mongo.Database, mux *http.ServeMux) *Blo
 		conv:         &bbConvert.HTMLConverter{},
 	}
 	out.conv.ImplementDefaults()
-	// setup mux
-	mux.HandleFunc("GET /blog", out.reqLatestBlogs)
-	mux.HandleFunc("GET /blog/list", out.reqBlogList)
-	mux.HandleFunc("GET /blog/{blogID}", out.reqBlog)
-	mux.HandleFunc("POST /blog", out.createBlog)
-	mux.HandleFunc("POST /blog/{blogID}", out.updateBlog)
-
-	mux.HandleFunc("GET /author/{authorID}", out.reqAuthorInfo)
-	mux.HandleFunc("POST /author", out.addAuthorInfo)
-	mux.HandleFunc("POST /author/{authorID}", out.updateAuthorInfo)
-
-	mux.HandleFunc("GET /portfolio", out.reqPortfolio)
 	return out
 }
 
@@ -50,4 +38,18 @@ func (b *BlogApp) CountTable() backend.CountTable {
 
 func (b *BlogApp) CrashTable() backend.CrashTable {
 	return nil
+}
+
+func (b *BlogApp) Extension(mux *http.ServeMux) {
+	mux.HandleFunc("GET /blog", b.reqLatestBlogs)
+	mux.HandleFunc("GET /blog/list", b.reqBlogList)
+	mux.HandleFunc("GET /blog/{blogID}", b.reqBlog)
+	mux.HandleFunc("POST /blog", b.createBlog)
+	mux.HandleFunc("POST /blog/{blogID}", b.updateBlog)
+
+	mux.HandleFunc("GET /author/{authorID}", b.reqAuthorInfo)
+	mux.HandleFunc("POST /author", b.addAuthorInfo)
+	mux.HandleFunc("POST /author/{authorID}", b.updateAuthorInfo)
+
+	mux.HandleFunc("GET /portfolio", b.reqPortfolio)
 }

@@ -15,10 +15,9 @@ type CrashFilterApp interface {
 	AddCrash(IndividualCrash) bool
 }
 
+// Allows an app more flexibility by directly interfacing with the backend's mux
 type ExtendedApp interface {
-	// Extension is called for any calls to /{appID}/
-	// Alternatively, use Backend.HandleFunc for more customizability
-	Extension(http.ResponseWriter, *http.Request)
+	Extension(*http.ServeMux)
 }
 
 type simpleApp struct {

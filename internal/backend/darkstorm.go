@@ -44,7 +44,7 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		}
 		b.apps[apps[i].AppID()] = apps[i]
 		if ext, is := apps[i].(ExtendedApp); is {
-			b.m.HandleFunc("/"+apps[i].AppID()+"/", ext.Extension)
+			ext.Extension(b.m)
 		}
 		if !hasLog && apps[i].CountTable() != nil {
 			hasLog = true
@@ -124,10 +124,12 @@ func (b *Backend) AddUserAuth(userTable Table[User], privKey, pubKey []byte) {
 	b.m.HandleFunc("POST /user/login", b.login)
 }
 
+// Add values to the Backend's underlying ServeMux
 func (b *Backend) HandleFunc(pattern string, h http.HandlerFunc) {
 	b.m.HandleFunc(pattern, h)
 }
 
+// Try to get the App associated with the given ApiKey. Returns nil if not found.
 func (b *Backend) GetApp(a *ApiKey) App {
 	return b.apps[a.AppID]
 }

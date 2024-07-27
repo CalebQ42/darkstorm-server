@@ -67,7 +67,7 @@ func setupBackend(mux *http.ServeMux) {
 			mongoClient.Database("testing").Collection("crash"),
 			mongoClient.Database("testing").Collection("archive"),
 		))
-	blogApp = blog.NewBlogApp(back, mongoClient.Database("blog"), mux)
+	blogApp = blog.NewBlogApp(back, mongoClient.Database("blog"))
 	//TODO: SWAssistant and CDR backends
 	var err error
 	back, err = backend.NewBackend(db.NewMongoTable[backend.ApiKey](

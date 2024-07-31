@@ -7,6 +7,7 @@ import (
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type PortfolioProject struct {
@@ -25,7 +26,7 @@ func (b *BlogApp) Projects(languageFilter string) ([]PortfolioProject, error) {
 	if languageFilter != "" {
 		filter["language.language"] = languageFilter
 	}
-	res, err := b.portfolioCol.Find(context.Background(), filter)
+	res, err := b.portfolioCol.Find(context.Background(), filter, options.Find().SetSort(bson.M{"_id": 1}))
 	if err != nil {
 		return nil, err
 	}

@@ -40,7 +40,7 @@ func main() {
 	setupBackend(mux)
 	setupWebsite(mux)
 	serv := &http.Server{
-		Addr:    ":443",
+		Addr:    ":4223",
 		Handler: mux,
 	}
 	err := serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "cert.pem"), filepath.Join(flag.Arg(0), "key.pem"))
@@ -78,9 +78,15 @@ func setupBackend(mux *http.ServeMux) {
 	if err != nil {
 		log.Fatal("error setting up backend:", err)
 	}
-	mux.Handle("/", back)
+	mux.Handle("api.darkstorm.tech/", back)
 }
 
 func setupWebsite(mux *http.ServeMux) {
 	mux.HandleFunc("GET /files", filesRequest)
+	mux.HandleFunc("GET /portfolio", portfolioRequest)
+	mux.HandleFunc("/", mainHandle)
+}
+
+func mainHandle(w http.ResponseWriter, r *http.Request) {
+
 }

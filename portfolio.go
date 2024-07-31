@@ -23,11 +23,13 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 		sendIndexWithContent(w, "Error getting portfolio")
 		return
 	}
+	langs := make(map[string]struct{})
 	out := ""
 	for _, p := range proj {
 		out += fmt.Sprintf(portfolioTitle, p.Title)
 		out += fmt.Sprintf(portfolioLink, p.Repository, p.Repository)
 		for _, l := range p.Languages {
+			langs[l.Language] = struct{}{}
 			out += fmt.Sprintf(portfolioLanguage, l.Language, l.Dates)
 		}
 		out += fmt.Sprintf(portfolioDesc, p.Description)

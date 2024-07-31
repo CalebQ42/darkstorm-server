@@ -6,7 +6,10 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 	"github.com/CalebQ42/darkstorm-server/internal/backend/db"
@@ -88,5 +91,21 @@ func setupWebsite(mux *http.ServeMux) {
 }
 
 func mainHandle(w http.ResponseWriter, r *http.Request) {
-
+	path := path.Clean(r.URL.Path)
+	if path == "/" || path == "" {
+		latestBlogsHandle(w, r)
+		return
+	}
+	stat, err := os.Stat(filepath.Join(*webRoot, path))
+	if err == nil && !stat.IsDir() {
+		http.ServeFile(w, r, filepath.Join(*webRoot, path))
+		return
+	}
+	spl := strings.Split(path, "/")
+	stat, err = os.Stat(filepath.Join(*webRoot, spl[0]))
+	if err == nil && stat.IsDir() {
+		http.ServeFile(w, r, filepath.Join(*webRoot, spl[0], "index.html"))
+		return
+	}
+	blogHandle(w, r, path)
 }

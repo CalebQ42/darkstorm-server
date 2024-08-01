@@ -26,6 +26,7 @@ var (
 )
 
 func main() {
+	addr := ":4223"
 	mongoURL := flag.String("mongo", "", "Enables MongoDB usage for Darkstorm backend.")
 	webRoot = flag.String("web-root", "", "Sets root directory of web server.")
 	flag.Parse()
@@ -43,7 +44,7 @@ func main() {
 	setupBackend(mux)
 	setupWebsite(mux)
 	serv := &http.Server{
-		Addr:    ":4223",
+		Addr:    addr,
 		Handler: mux,
 	}
 	err := serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "cert.pem"), filepath.Join(flag.Arg(0), "key.pem"))
@@ -107,5 +108,5 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(*webRoot, spl[0], "index.html"))
 		return
 	}
-	blogHandle(w, r, path)
+	blogHandle(w, path)
 }

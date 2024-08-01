@@ -174,7 +174,7 @@ func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (b *BlogApp) LatestBlogs(page int64) ([]Blog, error) {
+func (b *BlogApp) LatestBlogs(page int64) ([]*Blog, error) {
 	res, err := b.blogCol.Find(context.Background(), bson.M{}, options.Find().
 		SetSort(bson.M{"createTime": 1}).
 		SetLimit(5).
@@ -185,13 +185,13 @@ func (b *BlogApp) LatestBlogs(page int64) ([]Blog, error) {
 		}
 		return nil, err
 	}
-	var out []Blog
+	var out []*Blog
 	err = res.All(context.Background(), &out)
 	if err != nil {
 		return nil, err
 	}
 	for i := range out {
-		b.ConvertBlog(&out[i])
+		b.ConvertBlog(out[i])
 	}
 	return out, nil
 }

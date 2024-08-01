@@ -213,8 +213,8 @@ func (b *BlogApp) reqLatestBlogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var ret struct {
-		Blogs []Blog `json:"blogs"`
-		Num   int    `json:"num"`
+		Blogs []*Blog `json:"blogs"`
+		Num   int     `json:"num"`
 	}
 	ret.Num = len(blogs)
 	ret.Blogs = blogs

@@ -14,6 +14,8 @@ import (
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 	"github.com/CalebQ42/darkstorm-server/internal/backend/db"
 	"github.com/CalebQ42/darkstorm-server/internal/blog"
+	"github.com/CalebQ42/darkstorm-server/internal/cdr"
+	"github.com/CalebQ42/darkstorm-server/internal/swassistant"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -65,19 +67,15 @@ func setupMongo(uri string) {
 }
 
 func setupBackend(mux *http.ServeMux) {
-	testApp := backend.NewSimpleApp("testing",
-		db.NewMongoTable[backend.CountLog](mongoClient.Database("testing").Collection("count")),
-		db.NewMongoCrashTable(
-			mongoClient.Database("testing").Collection("crash"),
-			mongoClient.Database("testing").Collection("archive"),
-		))
 	blogApp = blog.NewBlogApp(back, mongoClient.Database("blog"))
-	//TODO: SWAssistant and CDR backends
+	swApp := swassistant.NewSWBackend(back, mongoClient.Database("swassistant"))
+	cdrApp := cdr.NewBackend(back, mongoClient.Database("cdr"))
 	var err error
 	back, err = backend.NewBackend(db.NewMongoTable[backend.ApiKey](
 		mongoClient.Database("darkstorm").Collection("keys")),
-		testApp,
 		blogApp,
+		swApp,
+		cdrApp,
 	)
 	if err != nil {
 		log.Fatal("error setting up backend:", err)

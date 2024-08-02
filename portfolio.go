@@ -23,16 +23,16 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("error getting portfolio projects:", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		sendIndexWithContent(w, "Error getting portfolio")
+		sendIndexWithContent(w, "Error getting portfolio", "", "")
 		return
 	}
-	aboutMe := "<h1 style='margin-bottom:-5px'>About Me</h1>"
+	aboutMe := "<h1 class='about-me-header'>About Me</h1>"
 	if me, err := blogApp.AboutMe(); err != nil {
 		aboutMe += "Error getting info about me :("
 	} else {
 		aboutMe += authorSection(me)
 	}
-	aboutMe += "<h1 style='margin-bottom:15px'>My Projects</h1>"
+	aboutMe += "<h1 class='my-projects-header' style='margin-bottom:15px'>My Projects</h1>"
 	langs := make(map[string]struct{})
 	out := ""
 	for _, p := range proj {
@@ -63,5 +63,5 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	out = aboutMe + fmt.Sprintf(portfolioSelector, tmp) + out
-	sendIndexWithContent(w, out)
+	sendIndexWithContent(w, out, "Portfolio", "")
 }

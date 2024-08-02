@@ -18,7 +18,7 @@ const (
 
 	authorInfo = `
 <table><tr>
-	<td><img src="%v" alt="%v" style="width:100px"></td>
+	<td><img src="%v" alt="%v" class='author-pic'></td>
 	<td><h2 class="author-title">%v</h2>%v</td>
 </tr></table>`
 )
@@ -28,19 +28,19 @@ func latestBlogsHandle(w http.ResponseWriter, _ *http.Request) {
 	if err != nil {
 		if err == backend.ErrNotFound {
 			w.WriteHeader(404)
-			sendIndexWithContent(w, "Page not found")
+			sendIndexWithContent(w, "Page not found", "", "")
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("error getting latest blogs:", err)
-		sendIndexWithContent(w, "Error getting page")
+		sendIndexWithContent(w, "Error getting page", "", "")
 		return
 	}
 	var out string
 	for _, b := range latest {
 		out += blogElement(b)
 	}
-	sendIndexWithContent(w, out)
+	sendIndexWithContent(w, out, "", "")
 }
 
 func blogHandle(w http.ResponseWriter, blog string) {
@@ -48,15 +48,15 @@ func blogHandle(w http.ResponseWriter, blog string) {
 	if err != nil {
 		if err == backend.ErrNotFound {
 			w.WriteHeader(404)
-			sendIndexWithContent(w, "Page not found")
+			sendIndexWithContent(w, "Page not found", "", "")
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("error getting blog %v: %v\n", blog, err)
-		sendIndexWithContent(w, "Error getting page")
+		sendIndexWithContent(w, "Error getting page", "", "")
 		return
 	}
-	sendIndexWithContent(w, blogElement(bl))
+	sendIndexWithContent(w, blogElement(bl), bl.Title, bl.Favicon)
 }
 
 func blogElement(b *blog.Blog) (out string) {

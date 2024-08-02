@@ -21,7 +21,7 @@ func NewBackend(back *backend.Backend, db *mongo.Database) *CDRBackend {
 	go func() {
 		for range time.Tick(time.Hour) {
 			log.Println("CDR: Deleting expired dice")
-			res, err := db.Collection("profiles").DeleteMany(context.TODO(), bson.M{"expiration": bson.M{"$lt": time.Now().Unix()}})
+			res, err := db.Collection("profiles").DeleteMany(context.Background(), bson.M{"expiration": bson.M{"$lt": time.Now().Unix()}})
 			if err == mongo.ErrNoDocuments {
 				continue
 			}
@@ -47,7 +47,7 @@ func (b CDRBackend) CrashTable() backend.CrashTable {
 }
 
 func (s CDRBackend) AddCrash(cr backend.IndividualCrash) bool {
-	res := s.db.Collection("versions").FindOne(context.TODO(), bson.M{"version": cr.Version})
+	res := s.db.Collection("versions").FindOne(context.Background(), bson.M{"version": cr.Version})
 	return res.Err() != mongo.ErrNoDocuments
 }
 

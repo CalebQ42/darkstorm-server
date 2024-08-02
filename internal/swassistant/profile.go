@@ -61,7 +61,7 @@ func (s *SWBackend) UploadProfile(w http.ResponseWriter, r *http.Request) {
 		Type:       profType,
 		Profile:    prof,
 	}
-	_, err = s.db.Collection("profiles").InsertOne(context.TODO(), toUpload)
+	_, err = s.db.Collection("profiles").InsertOne(context.Background(), toUpload)
 	if err != nil {
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		log.Println("error inserting profile:", err)
@@ -72,7 +72,7 @@ func (s *SWBackend) UploadProfile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *SWBackend) GetProfile(w http.ResponseWriter, r *http.Request) {
-	res := s.db.Collection("profiles").FindOne(context.TODO(), bson.M{"_id": r.PathValue("profileID")})
+	res := s.db.Collection("profiles").FindOne(context.Background(), bson.M{"_id": r.PathValue("profileID")})
 	if res.Err() == mongo.ErrNoDocuments {
 		backend.ReturnError(w, 404, "not found", "Profile not found")
 		return

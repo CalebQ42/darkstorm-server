@@ -23,7 +23,7 @@ const (
 </tr></table>`
 )
 
-func latestBlogsHandle(w http.ResponseWriter, r *http.Request) {
+func latestBlogsHandle(w http.ResponseWriter, _ *http.Request) {
 	latest, err := blogApp.LatestBlogs(0)
 	if err != nil {
 		if err == backend.ErrNotFound {

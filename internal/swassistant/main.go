@@ -21,7 +21,7 @@ func NewSWBackend(back *backend.Backend, db *mongo.Database) *SWBackend {
 	go func() {
 		for range time.Tick(time.Hour) {
 			log.Println("SWAssistant: Deleting expired profiles")
-			res, err := db.Collection("profiles").DeleteMany(context.TODO(), bson.M{"expiration": bson.M{"$lt": time.Now().Unix()}})
+			res, err := db.Collection("profiles").DeleteMany(context.Background(), bson.M{"expiration": bson.M{"$lt": time.Now().Unix()}})
 			if err == mongo.ErrNoDocuments {
 				continue
 			}
@@ -47,7 +47,7 @@ func (s *SWBackend) CrashTable() backend.CrashTable {
 }
 
 func (s *SWBackend) AddCrash(cr backend.IndividualCrash) bool {
-	res := s.db.Collection("versions").FindOne(context.TODO(), bson.M{"version": cr.Version})
+	res := s.db.Collection("versions").FindOne(context.Background(), bson.M{"version": cr.Version})
 	return res.Err() != mongo.ErrNoDocuments
 }
 

@@ -21,9 +21,13 @@ type UploadedDie struct {
 }
 
 func (b CDRBackend) UploadDie(w http.ResponseWriter, r *http.Request) {
-	hdr, err := b.back.VerifyHeader(w, r, "rooms", false)
+	hdr, err := b.back.VerifyHeader(w, r, "dice", false)
 	if err != nil {
-
+		return
+	}
+	if hdr.Key.AppID != "cdr" {
+		backend.ReturnError(w, http.StatusUnauthorized, "unauthorized", "Application not authorized")
+		return
 	}
 	if r.Body == nil {
 		backend.ReturnError(w, http.StatusBadRequest, "bad request", "Application sent a bad request")
@@ -52,7 +56,7 @@ func (b CDRBackend) UploadDie(w http.ResponseWriter, r *http.Request) {
 	if toUpload.Die["uuid"] != nil {
 		delete(toUpload.Die, "uuid")
 	}
-	_, err = b.db.Collection("dice").InsertOne(context.TODO(), toUpload)
+	_, err = b.db.Collection("dice").InsertOne(context.Background(), toUpload)
 	if err != nil {
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		log.Println("error inserting die:", err)
@@ -63,7 +67,7 @@ func (b CDRBackend) UploadDie(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b CDRBackend) GetDie(w http.ResponseWriter, r *http.Request) {
-	res := b.db.Collection("dice").FindOne(context.TODO(), bson.M{"_id": r.PathValue("dieID")})
+	res := b.db.Collection("dice").FindOne(context.Background(), bson.M{"_id": r.PathValue("dieID")})
 	if res.Err() == mongo.ErrNoDocuments {
 		backend.ReturnError(w, 404, "not found", "Die with the given id is not found")
 		return

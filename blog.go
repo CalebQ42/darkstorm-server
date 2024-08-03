@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	blogTitle  = "<h1 class='blog-title'>%v</h1>"
+	blogTitle  = "<h1 class='blog-title'><a href='%v'>%v</a></h1>"
 	blogAuthor = "<h4 class='blog-author'><i><b>By %v</b></i></h4>"
 	blogCreate = "<h5 class='blog-time'><i>Written on: %v</i></h5"
-	blogMain   = "<div class='blog'>%v</div>"
+	blogMain   = "<p class='blog'>%v</p>"
 
 	authorInfo = `
 <table><tr>
@@ -60,8 +60,13 @@ func blogHandle(w http.ResponseWriter, blog string) {
 }
 
 func blogElement(b *blog.Blog) (out string) {
-	out = fmt.Sprintf(blogTitle, b.Title)
-	out += fmt.Sprintf(blogAuthor, b.Author)
+	out = fmt.Sprintf(blogTitle, b.ID, b.Title)
+	auth, err := blogApp.GetAuthor(b)
+	if err == nil {
+		out += fmt.Sprintf(blogAuthor, auth.Name)
+	} else {
+		out += fmt.Sprintf(blogAuthor, "unknown")
+	}
 	cTime := time.Unix(b.CreateTime, 0).Format(time.DateOnly)
 	if b.UpdateTime > b.CreateTime {
 		out += fmt.Sprintf(blogCreate, cTime+"; Last updated on: "+time.Unix(b.UpdateTime, 0).Format(time.DateOnly))
@@ -69,7 +74,6 @@ func blogElement(b *blog.Blog) (out string) {
 		out += fmt.Sprintf(blogCreate, cTime)
 	}
 	out += fmt.Sprintf(blogMain, b.Blog)
-	auth, err := blogApp.GetAuthor(b)
 	if err == nil {
 		out += authorSection(auth)
 	}

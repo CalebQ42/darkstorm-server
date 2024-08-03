@@ -47,9 +47,9 @@ func (b *BlogApp) Extension(mux *http.ServeMux) {
 	mux.HandleFunc("POST /blog", b.createBlog)
 	mux.HandleFunc("POST /blog/{blogID}", b.updateBlog)
 
-	mux.HandleFunc("GET /author/{authorID}", b.reqAuthorInfo)
-	mux.HandleFunc("POST /author", b.addAuthorInfo)
-	mux.HandleFunc("POST /author/{authorID}", b.updateAuthorInfo)
+	mux.HandleFunc("GET /blog/author/{authorID}", b.reqAuthorInfo)
+	mux.HandleFunc("POST /blog/author", b.addAuthorInfo)
+	mux.HandleFunc("POST /blog/author/{authorID}", b.updateAuthorInfo)
 
-	mux.HandleFunc("GET /portfolio", b.reqPortfolio)
+	mux.HandleFunc("GET /blog/portfolio", b.reqPortfolio)
 }

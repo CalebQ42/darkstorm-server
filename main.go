@@ -39,7 +39,8 @@ func main() {
 		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE, OH NO, THEY'RE COMING FOR ME.... **DEATH NOISES**")
 	}
 	go func() {
-		http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect))
+		log.Println("error redirecting http traffice:",
+			http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect)))
 	}()
 	mux := http.NewServeMux()
 	setupMongo(*mongoURL)

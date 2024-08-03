@@ -28,9 +28,9 @@ var (
 )
 
 func main() {
-	addr := ":4223"
 	mongoURL := flag.String("mongo", "", "Enables MongoDB usage for Darkstorm backend.")
 	webRoot = flag.String("web-root", "", "Sets root directory of web server.")
+	addr := flag.String("addr", ":443", "Set listen address. Defaults to \":443\"")
 	flag.Parse()
 	if flag.NArg() != 1 {
 		log.Fatal("You must specify key directory. ex: darkstorm-server /etc/web-keys")
@@ -46,7 +46,7 @@ func main() {
 	setupBackend(mux)
 	setupWebsite(mux)
 	serv := &http.Server{
-		Addr:    addr,
+		Addr:    *addr,
 		Handler: mux,
 	}
 	err := serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "cert.pem"), filepath.Join(flag.Arg(0), "key.pem"))

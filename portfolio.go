@@ -23,7 +23,7 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println("error getting portfolio projects:", err)
 		w.WriteHeader(http.StatusInternalServerError)
-		sendIndexWithContent(w, "Error getting portfolio", "", "")
+		sendContent(w, r, "Error getting portfolio", "", "")
 		return
 	}
 	aboutMe := "<h1 class='about-me-header'>About Me</h1>"
@@ -63,5 +63,5 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	out = aboutMe + fmt.Sprintf(portfolioSelector, tmp) + out
-	sendIndexWithContent(w, out, "Portfolio", "")
+	sendContent(w, r, out, "Portfolio", "")
 }

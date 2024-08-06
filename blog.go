@@ -23,40 +23,40 @@ const (
 </tr></table>`
 )
 
-func latestBlogsHandle(w http.ResponseWriter, _ *http.Request) {
+func latestBlogsHandle(w http.ResponseWriter, r *http.Request) {
 	latest, err := blogApp.LatestBlogs(0)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			w.WriteHeader(404)
-			sendIndexWithContent(w, "Page not found", "", "")
+			sendContent(w, r, "Page not found", "", "")
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Println("error getting latest blogs:", err)
-		sendIndexWithContent(w, "Error getting page", "", "")
+		sendContent(w, r, "Error getting page", "", "")
 		return
 	}
 	var out string
 	for _, b := range latest {
 		out += blogElement(b)
 	}
-	sendIndexWithContent(w, out, "", "")
+	sendContent(w, r, out, "", "")
 }
 
-func blogHandle(w http.ResponseWriter, blog string) {
+func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
 	bl, err := blogApp.Blog(blog)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			w.WriteHeader(404)
-			sendIndexWithContent(w, "Page not found", "", "")
+			sendContent(w, r, "Page not found", "", "")
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("error getting blog %v: %v\n", blog, err)
-		sendIndexWithContent(w, "Error getting page", "", "")
+		sendContent(w, r, "Error getting page", "", "")
 		return
 	}
-	sendIndexWithContent(w, blogElement(bl), bl.Title, bl.Favicon)
+	sendContent(w, r, blogElement(bl), bl.Title, bl.Favicon)
 }
 
 func blogElement(b *blog.Blog) (out string) {

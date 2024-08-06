@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -15,7 +16,11 @@ const (
 	titleReplace   = "<!--Title-->"
 )
 
-func sendIndexWithContent(w http.ResponseWriter, content string, title string, favicon string) {
+func sendContent(w http.ResponseWriter, r *http.Request, content string, title string, favicon string) {
+	if r.URL.Query().Get("contentOnly") == "true" {
+		json.NewEncoder(w).Encode(map[string]string{"content": content, "title": title, "favicon": favicon})
+		return
+	}
 	indexFile, err := os.Open(filepath.Join(*webRoot, "index.html"))
 	if err != nil {
 		log.Println("error when opening main index.html:", err)

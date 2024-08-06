@@ -107,5 +107,5 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(*webRoot, spl[0], "index.html"))
 		return
 	}
-	blogHandle(w, path)
+	blogHandle(w, r, path)
 }

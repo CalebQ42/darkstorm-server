@@ -45,9 +45,5 @@ func filesRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if r.URL.Query().Get("contentOnly") == "true" {
-		w.Write([]byte(pageContent))
-	} else {
-		sendIndexWithContent(w, pageContent, "Files", "")
-	}
+	sendContent(w, r, pageContent, "Files", "")
 }

@@ -11,15 +11,16 @@ import (
 )
 
 const (
-	blogTitle  = "<h1 class='blog-title'><a href='%v'>%v</a></h1>"
+	blogTitle  = "<h1 class='blog-title'><a href='%v' onclick=\"return setToPath('%v')\" style='text-decoration:none'>%v</a></h1>"
 	blogAuthor = "<h4 class='blog-author'><i><b>By %v</b></i></h4>"
-	blogCreate = "<h5 class='blog-time'><i>Written on: %v</i></h5"
-	blogMain   = "<p class='blog'>%v</p>"
+	blogCreate = "<h5 class='blog-time'><i>Written on: %v</i></h5>"
+	blogMain   = "<div class='blog'>%v</div>"
 
 	authorInfo = `
+<h2 class='blog-author-info'>About the author:</h2>
 <table><tr>
 	<td><img src="%v" alt="%v" class='author-pic'></td>
-	<td><h2 class="author-title">%v</h2>%v</td>
+	<td><h3 class="author-title">%v</h3>%v</td>
 </tr></table>`
 )
 
@@ -60,7 +61,7 @@ func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
 }
 
 func blogElement(b *blog.Blog) (out string) {
-	out = fmt.Sprintf(blogTitle, b.ID, b.Title)
+	out = fmt.Sprintf(blogTitle, b.ID, b.ID, b.Title)
 	auth, err := blogApp.GetAuthor(b)
 	if err == nil {
 		out += fmt.Sprintf(blogAuthor, auth.Name)

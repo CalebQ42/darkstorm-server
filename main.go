@@ -6,6 +6,8 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -85,13 +87,15 @@ func setupBackend(mux *http.ServeMux) {
 }
 
 func setupWebsite(mux *http.ServeMux) {
+	url, _ := url.Parse("https://localhost:30000")
+	mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
 	mux.HandleFunc("GET /files", filesRequest)
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
 	mux.HandleFunc("/", mainHandle)
 }
 
 func mainHandle(w http.ResponseWriter, r *http.Request) {
-	path := path.Clean(r.URL.Path)
+	path := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 	if path == "/" || path == "" {
 		latestBlogsHandle(w, r)
 		return
@@ -102,10 +106,12 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	spl := strings.Split(path, "/")
-	stat, err = os.Stat(filepath.Join(*webRoot, spl[0]))
-	if err == nil && stat.IsDir() {
-		http.ServeFile(w, r, filepath.Join(*webRoot, spl[0], "index.html"))
-		return
+	if len(spl) > 1 {
+		stat, err = os.Stat(filepath.Join(*webRoot, spl[0]))
+		if err == nil && stat.IsDir() {
+			http.ServeFile(w, r, filepath.Join(*webRoot, spl[0], "index.html"))
+			return
+		}
 	}
 	blogHandle(w, r, path)
 }

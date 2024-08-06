@@ -52,7 +52,7 @@ func (b *BlogApp) Blog(ID string) (*Blog, error) {
 		return nil, res.Err()
 	}
 	var blog Blog
-	err := res.Decode(blog)
+	err := res.Decode(&blog)
 	if err != nil {
 		return nil, err
 	}

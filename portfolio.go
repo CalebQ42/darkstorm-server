@@ -14,6 +14,7 @@ const (
 	portfolioTitle          = "<h2 class='portfolio-title'>%v</h2>"
 	portfolioLink           = "<p class='portfolio-link'><a href='%v'>%v</a>"
 	portfolioLanguage       = "<p class='portfolio-language'><b>%v</b>: %v</p>"
+	portfolioTech           = "<p class='portfolio-tech'><b>Tech: </b>%v</p>"
 	portfolioDesc           = "<p class='portfolio-description'>%v</p>"
 )
 
@@ -42,6 +43,7 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 			langs[l.Language] = struct{}{}
 			out += fmt.Sprintf(portfolioLanguage, l.Language, l.Dates)
 		}
+		out += fmt.Sprintf(portfolioTech, strings.Join(p.Technologies, ", "))
 		out += fmt.Sprintf(portfolioDesc, p.Description)
 	}
 	langKeys := make([]string, 0, len(langs))

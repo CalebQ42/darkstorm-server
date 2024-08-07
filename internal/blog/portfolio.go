@@ -12,6 +12,7 @@ import (
 
 type PortfolioProject struct {
 	Title        string   `json:"_id" bson:"_id"`
+	Order        int      `json:"order" bson:"order"`
 	Repository   string   `json:"repository" bson:"repository"`
 	Description  string   `json:"description" bson:"description"`
 	Technologies []string `json:"technologies" bson:"technologies"`
@@ -26,7 +27,7 @@ func (b *BlogApp) Projects(languageFilter string) ([]PortfolioProject, error) {
 	if languageFilter != "" {
 		filter["language.language"] = languageFilter
 	}
-	res, err := b.portfolioCol.Find(context.Background(), filter, options.Find().SetSort(bson.M{"_id": 1}))
+	res, err := b.portfolioCol.Find(context.Background(), filter, options.Find().SetSort(bson.M{"order": 1}))
 	if err != nil {
 		return nil, err
 	}

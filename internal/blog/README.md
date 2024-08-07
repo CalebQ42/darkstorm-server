@@ -58,6 +58,7 @@ Return:
 ```json
 {
   id: "blogID",
+  staticPage: false, // static pages don't show up alongside other blog pages.
   createTime: 0, // creation time in Unix format
   updateTime: 0, // last update time in Unix format
   author: "authorID",
@@ -170,6 +171,7 @@ Return:
 [
   {
     title: "Darkstorm Server",
+    order: 0,
     repository: "https://github.com/CalebQ42/darkstorm-server",
     description: "The backend that runs runs my website and APIs",
     technologies: [ // May be empty

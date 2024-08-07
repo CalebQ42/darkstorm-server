@@ -17,7 +17,7 @@ type SWBackend struct {
 	db   *mongo.Database
 }
 
-func NewSWBackend(back *backend.Backend, db *mongo.Database) *SWBackend {
+func NewSWBackend(db *mongo.Database) *SWBackend {
 	go func() {
 		for range time.Tick(time.Hour) {
 			log.Println("SWAssistant: Deleting expired profiles")
@@ -29,8 +29,7 @@ func NewSWBackend(back *backend.Backend, db *mongo.Database) *SWBackend {
 		}
 	}()
 	return &SWBackend{
-		back: back,
-		db:   db,
+		db: db,
 	}
 }
 
@@ -44,6 +43,10 @@ func (s *SWBackend) CountTable() backend.CountTable {
 
 func (s *SWBackend) CrashTable() backend.CrashTable {
 	return db.NewMongoCrashTable(s.db.Collection("crashes"), s.db.Collection("crashArchive"))
+}
+
+func (s *SWBackend) AddBackend(b *backend.Backend) {
+	s.back = b
 }
 
 func (s *SWBackend) AddCrash(cr backend.IndividualCrash) bool {

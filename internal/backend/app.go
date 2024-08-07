@@ -9,6 +9,12 @@ type App interface {
 	CrashTable() CrashTable
 }
 
+// Provides an App access to it's parent *Backend. This is called only once, while setting up the Backend.
+type CallbackApp interface {
+	App
+	AddBackend(*Backend)
+}
+
 // Allows for an App to filter crashes before they get added to the DB, such as making sure the crash is from the correct version.
 type CrashFilterApp interface {
 	App
@@ -17,6 +23,7 @@ type CrashFilterApp interface {
 
 // Allows an app more flexibility by directly interfacing with the backend's mux
 type ExtendedApp interface {
+	App
 	Extension(*http.ServeMux)
 }
 

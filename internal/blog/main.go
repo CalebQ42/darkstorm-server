@@ -16,9 +16,8 @@ type BlogApp struct {
 	conv         *bbConvert.HTMLConverter
 }
 
-func NewBlogApp(b *backend.Backend, db *mongo.Database) *BlogApp {
+func NewBlogApp(db *mongo.Database) *BlogApp {
 	out := &BlogApp{
-		back:         b,
 		blogCol:      db.Collection("blog"),
 		authCol:      db.Collection("author"),
 		portfolioCol: db.Collection("portfolio"),
@@ -38,6 +37,10 @@ func (b *BlogApp) CountTable() backend.CountTable {
 
 func (b *BlogApp) CrashTable() backend.CrashTable {
 	return nil
+}
+
+func (b *BlogApp) AddBackend(back *backend.Backend) {
+	b.back = back
 }
 
 func (b *BlogApp) Extension(mux *http.ServeMux) {

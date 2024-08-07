@@ -46,6 +46,9 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		if ext, is := apps[i].(ExtendedApp); is {
 			ext.Extension(b.m)
 		}
+		if back, is := apps[i].(CallbackApp); is {
+			back.AddBackend(b)
+		}
 		if !hasLog && apps[i].CountTable() != nil {
 			hasLog = true
 		}
@@ -65,6 +68,7 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 		b.m.HandleFunc("DELETE /crash/{crashID}", b.deleteCrash)
 		b.m.HandleFunc("POST /crash/archive", b.archiveCrash)
 	}
+	b.m.HandleFunc("OPTIONS /", func(_ http.ResponseWriter, _ *http.Request) {}) //Here to send just CORS data.
 	go b.cleanupLoop()
 	return b, nil
 }
@@ -97,9 +101,9 @@ func (b *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if b.corsAddr != "" {
 		w.Header().Set("Access-Control-Allow-Origin", b.corsAddr)
 		if r.Method == http.MethodOptions {
-			w.Header().Set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT")
+			w.Header().Set("Access-Control-Allow-Methods", "*")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+			w.Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Authorization, X-API-Key, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
 		}
 	}
 	b.m.ServeHTTP(w, r)

@@ -52,7 +52,7 @@ func main() {
 		Addr:    *addr,
 		Handler: mux,
 	}
-	err := serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "cert.pem"), filepath.Join(flag.Arg(0), "key.pem"))
+	err := serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "fullchain.pem"), filepath.Join(flag.Arg(0), "key.pem"))
 	log.Println("webserver closed:", err)
 }
 
@@ -70,15 +70,13 @@ func setupMongo(uri string) {
 }
 
 func setupBackend(mux *http.ServeMux) {
-	blogApp = blog.NewBlogApp(back, mongoClient.Database("blog"))
-	swApp := swassistant.NewSWBackend(back, mongoClient.Database("swassistant"))
-	cdrApp := cdr.NewBackend(back, mongoClient.Database("cdr"))
+	blogApp = blog.NewBlogApp(mongoClient.Database("blog"))
 	var err error
 	back, err = backend.NewBackend(db.NewMongoTable[backend.ApiKey](
 		mongoClient.Database("darkstorm").Collection("keys")),
 		blogApp,
-		swApp,
-		cdrApp,
+		swassistant.NewSWBackend(mongoClient.Database("swassistant")),
+		cdr.NewBackend(mongoClient.Database("cdr")),
 	)
 	back.AddCorsAddress("https://darkstorm.tech")
 	if err != nil {
@@ -105,12 +103,11 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 	if err == nil && !stat.IsDir() {
 		http.ServeFile(w, r, filepath.Join(*webRoot, path))
 		return
-	}
-	spl := strings.Split(path, "/")
-	if len(spl) > 1 {
-		stat, err = os.Stat(filepath.Join(*webRoot, spl[0]))
-		if err == nil && stat.IsDir() {
-			http.ServeFile(w, r, filepath.Join(*webRoot, spl[0], "index.html"))
+	} else if stat.IsDir() {
+		ind := filepath.Join(*webRoot, path, "index.html")
+		stat, err = os.Stat(ind)
+		if err == nil {
+			http.ServeFile(w, r, ind)
 			return
 		}
 	}

@@ -17,7 +17,7 @@ type CDRBackend struct {
 	db   *mongo.Database
 }
 
-func NewBackend(back *backend.Backend, db *mongo.Database) *CDRBackend {
+func NewBackend(db *mongo.Database) *CDRBackend {
 	go func() {
 		for range time.Tick(time.Hour) {
 			log.Println("CDR: Deleting expired dice")
@@ -29,8 +29,7 @@ func NewBackend(back *backend.Backend, db *mongo.Database) *CDRBackend {
 		}
 	}()
 	return &CDRBackend{
-		back: back,
-		db:   db,
+		db: db,
 	}
 }
 
@@ -44,6 +43,10 @@ func (b CDRBackend) CountTable() backend.CountTable {
 
 func (b CDRBackend) CrashTable() backend.CrashTable {
 	return db.NewMongoCrashTable(b.db.Collection("crashes"), b.db.Collection("crashArchive"))
+}
+
+func (b *CDRBackend) AddBackend(back *backend.Backend) {
+	b.back = back
 }
 
 func (s CDRBackend) AddCrash(cr backend.IndividualCrash) bool {

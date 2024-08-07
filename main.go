@@ -80,7 +80,7 @@ func setupBackend(mux *http.ServeMux) {
 		swApp,
 		cdrApp,
 	)
-	back.AddCorsAddress("darkstorm.tech")
+	back.AddCorsAddress("https://darkstorm.tech")
 	if err != nil {
 		log.Fatal("error setting up backend:", err)
 	}

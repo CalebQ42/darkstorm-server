@@ -56,6 +56,9 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 	if hasLog {
 		b.m.HandleFunc("POST /count", b.countLog)
 		b.m.HandleFunc("GET /count", b.getCount)
+
+		//TODO: Remove legacy paths
+		b.m.HandleFunc("POST /log", b.countLog)
 	}
 	if hasCrash {
 		b.m.HandleFunc("POST /crash", b.reportCrash)

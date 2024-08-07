@@ -36,8 +36,13 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 	var req countLogReq
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil || req.Platform == "" {
-		ReturnError(w, http.StatusBadRequest, "invalidBody", "Bad request")
-		return
+		if r.URL.Query().Get("platform") != "" {
+			//TODO: remove legacy code
+			req.Platform = r.URL.Query().Get("platform")
+		} else {
+			ReturnError(w, http.StatusBadRequest, "invalidBody", "Bad request")
+			return
+		}
 	}
 	ap := b.GetApp(hdr.Key)
 	count := ap.CountTable()
@@ -72,8 +77,8 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]string{"id": req.ID})
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"id": req.ID})
 }
 
 func addToCountTable(w http.ResponseWriter, c CountTable, platform string, curDate int) error {
@@ -93,8 +98,8 @@ func addToCountTable(w http.ResponseWriter, c CountTable, platform string, curDa
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return err
 	}
-	json.NewEncoder(w).Encode(map[string]string{"id": id.String()})
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"id": id.String()})
 	return nil
 }
 

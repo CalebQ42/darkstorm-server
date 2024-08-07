@@ -2,6 +2,7 @@ package backend
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -36,6 +37,12 @@ type ParsedHeader struct {
 func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 	out := &ParsedHeader{}
 	key := r.Header.Get("X-API-Key")
+
+	//TODO: Remove legacy code
+	if key == "" {
+		key = r.URL.Query().Get("key")
+	}
+
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if key != "" {
 		apiKey, err := b.keyTable.Get(key)
@@ -97,6 +104,7 @@ func (b *Backend) VerifyHeader(w http.ResponseWriter, r *http.Request, keyPerm s
 	hdr, err := b.ParseHeader(r)
 	if hdr == nil || hdr.Key == nil {
 		if err == ErrApiKeyUnauthorized {
+			fmt.Println("yo1")
 			ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 			return nil, nil
 		}
@@ -111,11 +119,13 @@ func (b *Backend) VerifyHeader(w http.ResponseWriter, r *http.Request, keyPerm s
 		if allowManagementKey {
 			return hdr, nil
 		} else {
+			fmt.Println("yo2")
 			ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 			return nil, nil
 		}
 	}
 	if _, ok := b.apps[hdr.Key.AppID]; !ok {
+		fmt.Println("yo3")
 		ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 		return nil, errors.New("server misconfigured, appID present in DB, but App not added to backend")
 	}

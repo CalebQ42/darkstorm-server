@@ -57,7 +57,7 @@ func main() {
 }
 
 func setupMongo(uri string) {
-	mongoCert, err := tls.LoadX509KeyPair(filepath.Join(flag.Arg(0), "mongo.pem"), filepath.Join(flag.Arg(0)+"key.pem"))
+	mongoCert, err := tls.LoadX509KeyPair(filepath.Join(flag.Arg(0), "mongo.pem"), filepath.Join(flag.Arg(0), "key.pem"))
 	if err != nil {
 		log.Fatal("error loading mongo keys:", err)
 	}
@@ -80,6 +80,7 @@ func setupBackend(mux *http.ServeMux) {
 		swApp,
 		cdrApp,
 	)
+	back.AddCorsAddress("darkstorm.tech")
 	if err != nil {
 		log.Fatal("error setting up backend:", err)
 	}

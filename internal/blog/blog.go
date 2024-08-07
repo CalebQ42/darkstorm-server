@@ -21,13 +21,16 @@ type Blog struct {
 	Favicon    string `json:"favicon" bson:"favicon"`
 	Title      string `json:"title" bson:"title"`
 	Blog       string `json:"blog" bson:"blog"`
+	StaticPage bool   `json:"staticPage" bson:"staticPage"`
 	CreateTime int64  `json:"createTime" bson:"createTime"`
 	UpdateTime int64  `json:"updateTime" bson:"updateTime"`
 }
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {
 	//TODO: parse BBCode/Markdown from blog
-	blog.Blog = b.conv.Convert(blog.Blog)
+	if !blog.StaticPage {
+		blog.Blog = b.conv.Convert(blog.Blog)
+	}
 }
 
 func (b *BlogApp) GetAuthor(blog *Blog) (*Author, error) {
@@ -175,7 +178,7 @@ func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *BlogApp) LatestBlogs(page int64) ([]*Blog, error) {
-	res, err := b.blogCol.Find(context.Background(), bson.M{}, options.Find().
+	res, err := b.blogCol.Find(context.Background(), bson.M{"staticPage": false}, options.Find().
 		SetSort(bson.M{"createTime": 1}).
 		SetLimit(5).
 		SetSkip(page*5))

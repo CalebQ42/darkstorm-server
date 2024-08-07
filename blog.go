@@ -61,6 +61,9 @@ func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
 }
 
 func blogElement(b *blog.Blog) (out string) {
+	if b.StaticPage {
+		return b.Blog
+	}
 	out = fmt.Sprintf(blogTitle, b.ID, b.ID, b.Title)
 	auth, err := blogApp.GetAuthor(b)
 	if err == nil {

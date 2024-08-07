@@ -39,6 +39,7 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("platform") != "" {
 			//TODO: remove legacy code
 			req.Platform = r.URL.Query().Get("platform")
+			req.ID = r.URL.Query().Get("id")
 		} else {
 			ReturnError(w, http.StatusBadRequest, "invalidBody", "Bad request")
 			return

@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	blogTitle  = "<h1 class='blog-title'><a href='%v' onclick=\"return setToPath('%v')\" style='text-decoration:none'>%v</a></h1>"
+	blogTitle  = "<h1 class='blog-title'><a href='https://darkstorm.tech/%v' onclick=\"return setToPath('%v')\" style='text-decoration:none'>%v</a></h1>"
 	blogAuthor = "<h4 class='blog-author'><i><b>By %v</b></i></h4>"
 	blogCreate = "<h5 class='blog-time'><i>Written on: %v</i></h5>"
 	blogMain   = "<div class='blog'>%v</div>"

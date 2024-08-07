@@ -103,8 +103,11 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 	if err == nil && !stat.IsDir() {
 		http.ServeFile(w, r, filepath.Join(*webRoot, path))
 		return
-	} else if stat.IsDir() {
-		ind := filepath.Join(*webRoot, path, "index.html")
+	}
+	spl := strings.Split(path, "/")
+	stat, err = os.Stat(filepath.Join(*webRoot, spl[0]))
+	if stat.IsDir() {
+		ind := filepath.Join(*webRoot, spl[0], "index.html")
 		stat, err = os.Stat(ind)
 		if err == nil {
 			http.ServeFile(w, r, ind)

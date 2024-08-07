@@ -88,7 +88,7 @@ func setupBackend(mux *http.ServeMux) {
 func setupWebsite(mux *http.ServeMux) {
 	url, _ := url.Parse("https://localhost:30000")
 	mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
-	mux.HandleFunc("GET /files", filesRequest)
+	mux.HandleFunc("GET /files/{w...}", filesRequest)
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
 	mux.HandleFunc("/", mainHandle)
 }

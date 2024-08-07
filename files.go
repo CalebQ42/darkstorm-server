@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-const fileElement = "<p><a href='https://darkstorm.tech/%v/'>%v</a></p>"
+const fileElement = "<p><a href='https://darkstorm.tech%v'>%v</a></p>"
 
 func filesRequest(w http.ResponseWriter, r *http.Request) {
 	partPath := filepath.Clean(r.URL.Path)
@@ -38,7 +38,7 @@ func filesRequest(w http.ResponseWriter, r *http.Request) {
 				if f.IsDir() {
 					continue
 				}
-				pageContent += fmt.Sprintf(fileElement, partPath, f.Name())
+				pageContent += fmt.Sprintf(fileElement, filepath.Join(partPath, f.Name()), f.Name())
 			}
 		} else {
 			http.ServeFile(w, r, path)

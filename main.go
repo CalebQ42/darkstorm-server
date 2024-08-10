@@ -105,14 +105,11 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	spl := strings.Split(path, "/")
-	stat, err = os.Stat(filepath.Join(*webRoot, spl[0]))
-	if stat.IsDir() {
-		ind := filepath.Join(*webRoot, spl[0], "index.html")
-		stat, err = os.Stat(ind)
-		if err == nil {
-			http.ServeFile(w, r, ind)
-			return
-		}
+	ind := filepath.Join(*webRoot, spl[0], "index.html")
+	_, err = os.Stat(ind)
+	if err == nil {
+		http.ServeFile(w, r, ind)
+		return
 	}
 	blogHandle(w, r, path)
 }

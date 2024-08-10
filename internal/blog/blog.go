@@ -22,6 +22,7 @@ type Blog struct {
 	Title      string `json:"title" bson:"title"`
 	Blog       string `json:"blog" bson:"blog"`
 	StaticPage bool   `json:"staticPage" bson:"staticPage"`
+	Draft      bool   `json:"draft" bson:"draft"`
 	CreateTime int64  `json:"createTime" bson:"createTime"`
 	UpdateTime int64  `json:"updateTime" bson:"updateTime"`
 }
@@ -47,7 +48,7 @@ func (b *BlogApp) GetAuthor(blog *Blog) (*Author, error) {
 }
 
 func (b *BlogApp) Blog(ID string) (*Blog, error) {
-	res := b.blogCol.FindOne(context.Background(), bson.M{"_id": ID})
+	res := b.blogCol.FindOne(context.Background(), bson.M{"_id": ID, "draft": false})
 	if res.Err() != nil {
 		if res.Err() == mongo.ErrNoDocuments {
 			return nil, backend.ErrNotFound
@@ -178,8 +179,8 @@ func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
 }
 
 func (b *BlogApp) LatestBlogs(page int64) ([]*Blog, error) {
-	res, err := b.blogCol.Find(context.Background(), bson.M{"staticPage": false}, options.Find().
-		SetSort(bson.M{"createTime": 1}).
+	res, err := b.blogCol.Find(context.Background(), bson.M{"staticPage": false, "draft": false}, options.Find().
+		SetSort(bson.M{"createTime": -1}).
 		SetLimit(5).
 		SetSkip(page*5))
 	if err != nil {

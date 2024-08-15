@@ -61,7 +61,7 @@ func (m *MongoTable[T]) FullUpdate(ID string, data T) error {
 }
 
 func (m *MongoTable[T]) PartUpdate(ID string, update map[string]any) error {
-	res := m.col.FindOneAndUpdate(context.Background(), bson.M{"_id": ID}, update)
+	res := m.col.FindOneAndUpdate(context.Background(), bson.M{"_id": ID}, bson.M{"$set": update})
 	if res.Err() == mongo.ErrNoDocuments {
 		return backend.ErrNotFound
 	}

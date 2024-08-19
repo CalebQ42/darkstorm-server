@@ -1,20 +1,21 @@
 module github.com/CalebQ42/darkstorm-server
 
-go 1.22.5
+go 1.23.0
 
 require (
-	github.com/CalebQ42/bbConvert v1.0.0
+	github.com/CalebQ42/bbConvert v1.0.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
+	github.com/lithammer/shortuuid/v3 v3.0.7
 	go.mongodb.org/mongo-driver v1.15.1
 	golang.org/x/crypto v0.24.0
 )
 
 require (
+	github.com/dlclark/regexp2 v1.11.5-0.20240806004527-5bbbed8ea10b // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
-	github.com/lithammer/shortuuid/v3 v3.0.7
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect

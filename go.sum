@@ -1,7 +1,9 @@
-github.com/CalebQ42/bbConvert v1.0.0 h1:2WSAxVKhCCMReuU30r3ehLtL6m9aH8sY3wugp9yUdzg=
-github.com/CalebQ42/bbConvert v1.0.0/go.mod h1:QJevnlhzUdL3EJB5Lgqoi7rdgtzt/UEamn/QGNoVgkM=
+github.com/CalebQ42/bbConvert v1.0.2 h1:N0+q7Kw3Ge2m117jbYp1DyrCa7zUuBOpyBfhcuphjz8=
+github.com/CalebQ42/bbConvert v1.0.2/go.mod h1:gV0gaDhzuIwWqX9O1F8qu7tFXz50DnGQOnq56qrtO3A=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dlclark/regexp2 v1.11.5-0.20240806004527-5bbbed8ea10b h1:AJKOdc+1fRSJ0/75Jty1npvxUUD0y7hQDg15LMAHhyU=
+github.com/dlclark/regexp2 v1.11.5-0.20240806004527-5bbbed8ea10b/go.mod h1:YvCrhrh/qlds8EhFKPtJprdXn5fWBllSw1qo99dZyiQ=
 github.com/golang-jwt/jwt/v5 v5.2.1 h1:OuVbFODueb089Lh128TAcimifWaLhJwVflnrgM17wHk=
 github.com/golang-jwt/jwt/v5 v5.2.1/go.mod h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=
 github.com/golang/snappy v0.0.1 h1:Qgr9rKW7uDUkrbSmQeiDsGa8SjGyCOGtuasMWwvp2P4=

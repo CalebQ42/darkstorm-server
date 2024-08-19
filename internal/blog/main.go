@@ -13,7 +13,7 @@ type BlogApp struct {
 	blogCol      *mongo.Collection
 	authCol      *mongo.Collection
 	portfolioCol *mongo.Collection
-	conv         *bbConvert.HTMLConverter
+	conv         bbConvert.ComboConverter
 }
 
 func NewBlogApp(db *mongo.Database) *BlogApp {
@@ -21,9 +21,8 @@ func NewBlogApp(db *mongo.Database) *BlogApp {
 		blogCol:      db.Collection("blog"),
 		authCol:      db.Collection("author"),
 		portfolioCol: db.Collection("portfolio"),
-		conv:         &bbConvert.HTMLConverter{},
+		conv:         bbConvert.NewComboConverter(),
 	}
-	out.conv.ImplementDefaults()
 	return out
 }
 

@@ -30,7 +30,7 @@ type Blog struct {
 func (b *BlogApp) ConvertBlog(blog *Blog) {
 	//TODO: parse BBCode/Markdown from blog
 	if !blog.StaticPage {
-		blog.Blog = b.conv.Convert(blog.Blog)
+		blog.Blog = b.conv.HTMLConvert(blog.Blog)
 	}
 }
 

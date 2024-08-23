@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
-const fileElement = "<p><a href='https://darkstorm.tech%v'>%v</a></p>"
+const fileElement = "<p><a href='https://darkstorm.tech%v'>%v</a><div style='float:right;'>%v</div></p>"
 
 func filesRequest(w http.ResponseWriter, r *http.Request) {
 	partPath := filepath.Clean(r.URL.Path)
@@ -38,7 +39,8 @@ func filesRequest(w http.ResponseWriter, r *http.Request) {
 				if f.IsDir() {
 					continue
 				}
-				pageContent += fmt.Sprintf(fileElement, filepath.Join(partPath, f.Name()), f.Name())
+				inf, _ := f.Info()
+				pageContent += fmt.Sprintf(fileElement, filepath.Join(partPath, f.Name()), f.Name(), inf.ModTime().Format(time.DateOnly))
 			}
 		} else {
 			http.ServeFile(w, r, path)

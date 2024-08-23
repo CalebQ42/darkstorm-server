@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const fileElement = "<div style='width:800px;padding: 10px 0 10px 0'><a href='https://darkstorm.tech%v'>%v</a><div style='float:right;'>%v</div></div>"
+const fileElement = "<div class='files-link'><a href='https://darkstorm.tech%v'>%v</a><div style='float:right;'>%v</div></div>"
 
 func filesRequest(w http.ResponseWriter, r *http.Request) {
 	partPath := filepath.Clean(r.URL.Path)

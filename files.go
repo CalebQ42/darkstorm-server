@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 )
 
-const fileElement = "<p><a href='https://darkstorm.tech%v'>%v</a><div style='float:right;'>%v</div></p>"
+const fileElement = "<div style='width:800px;padding: 10px 0 10px 0'><a href='https://darkstorm.tech%v'>%v</a><div style='float:right;'>%v</div></div>"
 
 func filesRequest(w http.ResponseWriter, r *http.Request) {
 	partPath := filepath.Clean(r.URL.Path)
@@ -30,6 +32,9 @@ func filesRequest(w http.ResponseWriter, r *http.Request) {
 		if stat.IsDir() {
 			var dirs []os.DirEntry
 			dirs, err = fil.ReadDir(-1)
+			slices.SortFunc(dirs, func(a, b os.DirEntry) int {
+				return strings.Compare(a.Name(), b.Name())
+			})
 			if err != nil {
 				pageContent = "<p>Server error!</p>"
 				w.WriteHeader(http.StatusInternalServerError)

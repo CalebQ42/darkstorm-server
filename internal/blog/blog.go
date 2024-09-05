@@ -28,7 +28,6 @@ type Blog struct {
 }
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {
-	//TODO: parse BBCode/Markdown from blog
 	if !blog.StaticPage {
 		blog.Blog = b.conv.HTMLConvert(blog.Blog)
 	}
@@ -48,6 +47,12 @@ func (b *BlogApp) GetAuthor(blog *Blog) (*Author, error) {
 }
 
 func (b *BlogApp) Blog(ID string) (*Blog, error) {
+	b.cacheMutex.RLock()
+	blog, has := b.blogCache[ID]
+	b.cacheMutex.RUnlock()
+	if has {
+		return &blog, nil
+	}
 	res := b.blogCol.FindOne(context.Background(), bson.M{"_id": ID, "draft": false})
 	if res.Err() != nil {
 		if res.Err() == mongo.ErrNoDocuments {
@@ -55,13 +60,23 @@ func (b *BlogApp) Blog(ID string) (*Blog, error) {
 		}
 		return nil, res.Err()
 	}
-	var blog Blog
 	err := res.Decode(&blog)
 	if err != nil {
 		return nil, err
 	}
 	b.ConvertBlog(&blog)
+	b.cacheMutex.Lock()
+	b.blogCache[ID] = blog
+	b.cacheMutex.Unlock()
+	go b.CleanCache(ID)
 	return &blog, nil
+}
+
+func (b *BlogApp) CleanCache(ID string) {
+	time.Sleep(5 * time.Minute)
+	b.cacheMutex.Lock()
+	delete(b.blogCache, ID)
+	b.cacheMutex.Unlock()
 }
 
 func (b *BlogApp) reqBlog(w http.ResponseWriter, r *http.Request) {

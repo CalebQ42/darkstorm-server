@@ -2,6 +2,7 @@ package blog
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/CalebQ42/bbConvert"
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
@@ -14,6 +15,9 @@ type BlogApp struct {
 	authCol      *mongo.Collection
 	portfolioCol *mongo.Collection
 	conv         bbConvert.ComboConverter
+
+	cacheMutex *sync.RWMutex
+	blogCache  map[string]Blog
 }
 
 func NewBlogApp(db *mongo.Database) *BlogApp {
@@ -22,6 +26,8 @@ func NewBlogApp(db *mongo.Database) *BlogApp {
 		authCol:      db.Collection("author"),
 		portfolioCol: db.Collection("portfolio"),
 		conv:         bbConvert.NewComboConverter(),
+		cacheMutex:   &sync.RWMutex{},
+		blogCache:    make(map[string]Blog),
 	}
 	return out
 }

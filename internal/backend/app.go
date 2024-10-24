@@ -1,6 +1,9 @@
 package backend
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 // An application interface. Both LogTable and CrashTable are optional, if they return nil then requests will be forbidden.
 type App interface {
@@ -18,7 +21,7 @@ type CallbackApp interface {
 // Allows for an App to filter crashes before they get added to the DB, such as making sure the crash is from the correct version.
 type CrashFilterApp interface {
 	App
-	AddCrash(IndividualCrash) bool
+	ShouldAddCrash(context.Context, IndividualCrash) bool
 }
 
 // Allows an app more flexibility by directly interfacing with the backend's mux

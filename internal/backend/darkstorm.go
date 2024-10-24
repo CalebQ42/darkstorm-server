@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"context"
 	"crypto/ed25519"
 	"embed"
 	"encoding/json"
@@ -83,7 +84,7 @@ func (b *Backend) cleanupLoop() {
 			if tab == nil {
 				continue
 			}
-			err = tab.RemoveOldLogs(old)
+			err = tab.RemoveOldLogs(context.Background(), old)
 			if err != nil {
 				log.Printf("error removing old logs for %v: %v\n", a.AppID(), err)
 			}

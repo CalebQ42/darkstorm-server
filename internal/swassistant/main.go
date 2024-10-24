@@ -49,8 +49,8 @@ func (s *SWBackend) AddBackend(b *backend.Backend) {
 	s.back = b
 }
 
-func (s *SWBackend) AddCrash(cr backend.IndividualCrash) bool {
-	res := s.db.Collection("versions").FindOne(context.Background(), bson.M{"version": cr.Version})
+func (s *SWBackend) ShouldAddCrash(ctx context.Context, cr backend.IndividualCrash) bool {
+	res := s.db.Collection("versions").FindOne(ctx, bson.M{"version": cr.Version})
 	return res.Err() != mongo.ErrNoDocuments
 }
 

@@ -20,8 +20,8 @@ type Author struct {
 	PicURL string `json:"picurl" bson:"picurl"`
 }
 
-func (b *BlogApp) AboutMe() (*Author, error) {
-	res := b.authCol.FindOne(context.Background(), bson.M{"_id": "caleb_gardner"})
+func (b *BlogApp) AboutMe(ctx context.Context) (*Author, error) {
+	res := b.authCol.FindOne(ctx, bson.M{"_id": "caleb_gardner"})
 	if res.Err() != nil {
 		log.Println("error getting about me:", res.Err())
 		if res.Err() == mongo.ErrNoDocuments {
@@ -39,7 +39,7 @@ func (b *BlogApp) AboutMe() (*Author, error) {
 }
 
 func (b *BlogApp) reqAuthorInfo(w http.ResponseWriter, r *http.Request) {
-	res := b.authCol.FindOne(context.Background(), r.PathValue("authorID"))
+	res := b.authCol.FindOne(r.Context(), r.PathValue("authorID"))
 	if res.Err() == mongo.ErrNoDocuments {
 		backend.ReturnError(w, http.StatusNotFound, "notFound", "Author with ID "+r.PathValue("authorID")+" not found")
 		return
@@ -85,7 +85,7 @@ func (b *BlogApp) addAuthorInfo(w http.ResponseWriter, r *http.Request) {
 		if i != 1 {
 			newID += strconv.Itoa(i)
 		}
-		collisionCheck := b.authCol.FindOne(context.Background(), bson.M{"name": newAuth.Name})
+		collisionCheck := b.authCol.FindOne(r.Context(), bson.M{"name": newAuth.Name})
 		if collisionCheck.Err() == mongo.ErrNoDocuments {
 			newAuth.ID = newID
 			break
@@ -95,7 +95,7 @@ func (b *BlogApp) addAuthorInfo(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	_, err = b.authCol.InsertOne(context.Background(), newAuth)
+	_, err = b.authCol.InsertOne(r.Context(), newAuth)
 	if err != nil {
 		log.Println("error inserting new author:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
@@ -136,7 +136,7 @@ func (b *BlogApp) updateAuthorInfo(w http.ResponseWriter, r *http.Request) {
 	if rawUpd["picurl"] != "" {
 		actlUpd["picurl"] = rawUpd["picurl"]
 	}
-	res, err := b.authCol.UpdateByID(context.Background(), r.PathValue("authorID"), actlUpd)
+	res, err := b.authCol.UpdateByID(r.Context(), r.PathValue("authorID"), actlUpd)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")

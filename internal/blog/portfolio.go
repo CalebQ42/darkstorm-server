@@ -22,22 +22,22 @@ type PortfolioProject struct {
 	} `json:"language" bson:"language"`
 }
 
-func (b *BlogApp) Projects(languageFilter string) ([]PortfolioProject, error) {
+func (b *BlogApp) Projects(ctx context.Context, languageFilter string) ([]PortfolioProject, error) {
 	filter := bson.M{}
 	if languageFilter != "" {
 		filter["language.language"] = languageFilter
 	}
-	res, err := b.portfolioCol.Find(context.Background(), filter, options.Find().SetSort(bson.M{"order": 1}))
+	res, err := b.portfolioCol.Find(ctx, filter, options.Find().SetSort(bson.M{"order": 1}))
 	if err != nil {
 		return nil, err
 	}
 	var out []PortfolioProject
-	err = res.All(context.Background(), &out)
+	err = res.All(ctx, &out)
 	return out, err
 }
 
 func (b *BlogApp) reqPortfolio(w http.ResponseWriter, r *http.Request) {
-	folio, err := b.Projects(r.URL.Query().Get("lang"))
+	folio, err := b.Projects(r.Context(), r.URL.Query().Get("lang"))
 	if err != nil {
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
 		return

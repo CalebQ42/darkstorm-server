@@ -1,7 +1,6 @@
 package swassistant
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -30,7 +29,8 @@ func (s *SWBackend) ListRooms(w http.ResponseWriter, r *http.Request) {
 		backend.ReturnError(w, http.StatusUnauthorized, "unauthorized", "Application not authorized")
 		return
 	}
-	res, err := s.db.Collection("rooms").Find(context.Background(), bson.M{"users": hdr.User.Username}, options.Find().SetProjection(bson.M{"_id": 1, "name": 1, "owner": 1}))
+	res, err := s.db.Collection("rooms").Find(r.Context(), bson.M{"users": hdr.User.Username},
+		options.Find().SetProjection(bson.M{"_id": 1, "name": 1, "owner": 1}))
 	if err != nil && err != mongo.ErrNoDocuments {
 		log.Println("error getting room list:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -42,7 +42,7 @@ func (s *SWBackend) ListRooms(w http.ResponseWriter, r *http.Request) {
 		Owner string `json:"owner" bson:"owner"`
 	}, 0)
 	if err == nil {
-		err = res.All(context.Background(), &out)
+		err = res.All(r.Context(), &out)
 		if err != nil {
 			log.Println("error decoding room list:", err)
 			backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -74,7 +74,7 @@ func (s *SWBackend) NewRoom(w http.ResponseWriter, r *http.Request) {
 		Users:    []string{},
 		Profiles: []string{},
 	}
-	_, err = s.db.Collection("rooms").InsertOne(context.Background(), newRoom)
+	_, err = s.db.Collection("rooms").InsertOne(r.Context(), newRoom)
 	if err != nil {
 		log.Println("error creating room:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -93,7 +93,7 @@ func (s *SWBackend) GetRoom(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	roomID := r.PathValue("roomID")
-	res := s.db.Collection("rooms").FindOne(context.TODO(), bson.M{"_id": roomID})
+	res := s.db.Collection("rooms").FindOne(r.Context(), bson.M{"_id": roomID})
 	if res.Err() == mongo.ErrNoDocuments {
 		backend.ReturnError(w, http.StatusNotFound, "not found", "Room not found")
 		return

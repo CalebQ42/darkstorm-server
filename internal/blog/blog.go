@@ -33,8 +33,8 @@ func (b *BlogApp) ConvertBlog(blog *Blog) {
 	}
 }
 
-func (b *BlogApp) GetAuthor(blog *Blog) (*Author, error) {
-	res := b.authCol.FindOne(context.Background(), bson.M{"_id": blog.Author})
+func (b *BlogApp) GetAuthor(ctx context.Context, blog *Blog) (*Author, error) {
+	res := b.authCol.FindOne(ctx, bson.M{"_id": blog.Author})
 	if res.Err() != nil {
 		if res.Err() == mongo.ErrNoDocuments {
 			return nil, backend.ErrNotFound
@@ -46,14 +46,14 @@ func (b *BlogApp) GetAuthor(blog *Blog) (*Author, error) {
 	return &author, err
 }
 
-func (b *BlogApp) Blog(ID string) (*Blog, error) {
+func (b *BlogApp) Blog(ctx context.Context, ID string) (*Blog, error) {
 	b.cacheMutex.RLock()
 	blog, has := b.blogCache[ID]
 	b.cacheMutex.RUnlock()
 	if has {
 		return &blog, nil
 	}
-	res := b.blogCol.FindOne(context.Background(), bson.M{"_id": ID, "draft": false})
+	res := b.blogCol.FindOne(ctx, bson.M{"_id": ID, "draft": false})
 	if res.Err() != nil {
 		if res.Err() == mongo.ErrNoDocuments {
 			return nil, backend.ErrNotFound
@@ -85,7 +85,7 @@ func (b *BlogApp) reqBlog(w http.ResponseWriter, r *http.Request) {
 		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Must provide a blogID")
 		return
 	}
-	blog, err := b.Blog(blogID)
+	blog, err := b.Blog(r.Context(), blogID)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			backend.ReturnError(w, http.StatusNotFound, "notFound", "Not blog found with the given ID")
@@ -130,7 +130,7 @@ func (b *BlogApp) createBlog(w http.ResponseWriter, r *http.Request) {
 	newBlog.CreateTime = tim
 	newBlog.UpdateTime = tim
 	newBlog.Author = hdr.User.Username
-	_, err = b.blogCol.InsertOne(context.Background(), newBlog)
+	_, err = b.blogCol.InsertOne(r.Context(), newBlog)
 	if err != nil {
 		log.Println("error when inserting new blog:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
@@ -177,7 +177,7 @@ func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
 		reqUpd["blog"] = blog
 	}
 	reqUpd["updateTime"] = time.Now().Unix()
-	res, err := b.blogCol.UpdateByID(context.Background(), r.PathValue("blogID"), reqUpd)
+	res, err := b.blogCol.UpdateByID(r.Context(), r.PathValue("blogID"), reqUpd)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
@@ -193,8 +193,8 @@ func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (b *BlogApp) LatestBlogs(page int64) ([]*Blog, error) {
-	res, err := b.blogCol.Find(context.Background(), bson.M{"staticPage": false, "draft": false}, options.Find().
+func (b *BlogApp) LatestBlogs(ctx context.Context, page int64) ([]*Blog, error) {
+	res, err := b.blogCol.Find(ctx, bson.M{"staticPage": false, "draft": false}, options.Find().
 		SetSort(bson.M{"createTime": -1}).
 		SetLimit(5).
 		SetSkip(page*5))
@@ -205,7 +205,7 @@ func (b *BlogApp) LatestBlogs(page int64) ([]*Blog, error) {
 		return nil, err
 	}
 	var out []*Blog
-	err = res.All(context.Background(), &out)
+	err = res.All(ctx, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +225,7 @@ func (b *BlogApp) reqLatestBlogs(w http.ResponseWriter, r *http.Request) {
 			page = 0
 		}
 	}
-	blogs, err := b.LatestBlogs(int64(page))
+	blogs, err := b.LatestBlogs(r.Context(), int64(page))
 	if err != nil && err != backend.ErrNotFound {
 		log.Println("error getting latest blogs:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "internal error")
@@ -245,8 +245,8 @@ type BlogListResult struct {
 	CreateTime int    `json:"createTime" bson:"createTime"`
 }
 
-func (b *BlogApp) BlogList(page int64) ([]BlogListResult, error) {
-	res, err := b.blogCol.Find(context.Background(), bson.M{}, options.Find().
+func (b *BlogApp) BlogList(ctx context.Context, page int64) ([]BlogListResult, error) {
+	res, err := b.blogCol.Find(ctx, bson.M{}, options.Find().
 		SetProjection(bson.M{"_id": 1, "createTime": 1}).
 		SetSort(bson.M{"createTime": 1}).
 		SetLimit(50).
@@ -258,7 +258,7 @@ func (b *BlogApp) BlogList(page int64) ([]BlogListResult, error) {
 		return nil, err
 	}
 	var out []BlogListResult
-	err = res.All(context.Background(), &out)
+	err = res.All(ctx, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func (b *BlogApp) reqBlogList(w http.ResponseWriter, r *http.Request) {
 			page = 0
 		}
 	}
-	blogList, err := b.BlogList(int64(page))
+	blogList, err := b.BlogList(r.Context(), int64(page))
 	if err != nil && err != backend.ErrNotFound {
 		log.Println("error getting blog list:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "internal error")

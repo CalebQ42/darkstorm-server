@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -53,15 +54,15 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 	}
 	curDate := getDate(time.Now())
 	if req.ID == "" {
-		err = addToCountTable(w, count, req.Platform, curDate)
+		err = addToCountTable(r.Context(), w, count, req.Platform, curDate)
 		if err != nil {
 			log.Println("error adding to count table:", err)
 		}
 		return
 	}
-	l, err := count.Get(req.ID)
+	l, err := count.Get(r.Context(), req.ID)
 	if err == ErrNotFound {
-		err = addToCountTable(w, count, req.Platform, curDate)
+		err = addToCountTable(r.Context(), w, count, req.Platform, curDate)
 		if err != nil {
 			log.Println("error adding to count table:", err)
 		}
@@ -72,7 +73,7 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		return
 	}
-	err = count.PartUpdate(req.ID, map[string]any{"date": curDate})
+	err = count.PartUpdate(r.Context(), req.ID, map[string]any{"date": curDate})
 	if err != nil {
 		log.Println("error updating count log:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -82,14 +83,14 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"id": req.ID})
 }
 
-func addToCountTable(w http.ResponseWriter, c CountTable, platform string, curDate int) error {
+func addToCountTable(ctx context.Context, w http.ResponseWriter, c CountTable, platform string, curDate int) error {
 	id, err := uuid.NewV7()
 	if err != nil {
 		log.Println("error generating new log UUID:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return err
 	}
-	err = c.Insert(CountLog{
+	err = c.Insert(ctx, CountLog{
 		ID:       id.String(),
 		Platform: platform,
 		Date:     curDate,
@@ -127,7 +128,7 @@ func (b *Backend) getCount(w http.ResponseWriter, r *http.Request) {
 		ReturnError(w, http.StatusBadRequest, "badRequest", "Trying to get user count on app that doesn't have a count table")
 		return
 	}
-	out, err := count.Count(r.URL.Query().Get("platform"))
+	out, err := count.Count(r.Context(), r.URL.Query().Get("platform"))
 	if err != nil {
 		log.Println("error getting count:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")

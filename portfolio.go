@@ -20,7 +20,7 @@ const (
 
 func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 	selectedLang := r.URL.Query().Get("lang")
-	proj, err := blogApp.Projects(selectedLang)
+	proj, err := blogApp.Projects(r.Context(), selectedLang)
 	if err != nil {
 		log.Println("error getting portfolio projects:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -28,7 +28,7 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	aboutMe := "<h1 class='about-me-header'>About Me</h1>"
-	if me, err := blogApp.AboutMe(); err != nil {
+	if me, err := blogApp.AboutMe(r.Context()); err != nil {
 		aboutMe += "Error getting info about me :("
 	} else {
 		aboutMe += authorSection(me)

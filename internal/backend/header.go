@@ -45,7 +45,7 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 
 	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
 	if key != "" {
-		apiKey, err := b.keyTable.Get(key)
+		apiKey, err := b.keyTable.Get(r.Context(), key)
 		if err == ErrNotFound {
 			return nil, ErrApiKeyUnauthorized
 		} else if err != nil {
@@ -73,7 +73,7 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 		} else if err != nil {
 			return out, errors.Join(ErrTokenUnauthorized, err)
 		}
-		usr, err := b.userTable.Get(sub)
+		usr, err := b.userTable.Get(r.Context(), sub)
 		if err == jwt.ErrInvalidKey {
 			return out, ErrTokenUnauthorized
 		} else if err != nil {

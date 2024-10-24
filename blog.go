@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,7 +26,7 @@ const (
 )
 
 func latestBlogsHandle(w http.ResponseWriter, r *http.Request) {
-	latest, err := blogApp.LatestBlogs(0)
+	latest, err := blogApp.LatestBlogs(r.Context(), 0)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			w.WriteHeader(404)
@@ -39,13 +40,13 @@ func latestBlogsHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	var out string
 	for _, b := range latest {
-		out += blogElement(b)
+		out += blogElement(r.Context(), b)
 	}
 	sendContent(w, r, out, "", "")
 }
 
 func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
-	bl, err := blogApp.Blog(blog)
+	bl, err := blogApp.Blog(r.Context(), blog)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			w.WriteHeader(404)
@@ -57,15 +58,15 @@ func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
 		sendContent(w, r, "Error getting page", "", "")
 		return
 	}
-	sendContent(w, r, blogElement(bl), bl.Title, bl.Favicon)
+	sendContent(w, r, blogElement(r.Context(), bl), bl.Title, bl.Favicon)
 }
 
-func blogElement(b *blog.Blog) (out string) {
+func blogElement(ctx context.Context, b *blog.Blog) (out string) {
 	if b.StaticPage {
 		return b.Blog
 	}
 	out = fmt.Sprintf(blogTitle, b.ID, b.ID, b.Title)
-	auth, err := blogApp.GetAuthor(b)
+	auth, err := blogApp.GetAuthor(ctx, b)
 	if err == nil {
 		out += fmt.Sprintf(blogAuthor, auth.Name)
 	} else {

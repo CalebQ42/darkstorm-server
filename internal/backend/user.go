@@ -139,7 +139,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	// TODO: filter offensive words/phrases
 	b.userMutex.Lock()
 	defer b.userMutex.Unlock()
-	matchUsername, err := b.userTable.Find(map[string]any{"username": req.Username})
+	matchUsername, err := b.userTable.Find(r.Context(), map[string]any{"username": req.Username})
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		log.Println("error when checking for username collisions:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -148,7 +148,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 		ReturnError(w, http.StatusUnauthorized, "taken", "Username or email already used")
 		return
 	}
-	matchEmail, err := b.userTable.Find(map[string]any{"email": req.Email})
+	matchEmail, err := b.userTable.Find(r.Context(), map[string]any{"email": req.Email})
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		log.Println("error when checking for email collisions:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -163,7 +163,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
-	err = b.userTable.Insert(u)
+	err = b.userTable.Insert(r.Context(), u)
 	if err != nil {
 		log.Println("error inserting new user:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -196,7 +196,7 @@ func (b *Backend) deleteUser(w http.ResponseWriter, r *http.Request) {
 	}
 	b.userMutex.Lock()
 	defer b.userMutex.Unlock()
-	err = b.userTable.Remove(userID)
+	err = b.userTable.Remove(r.Context(), userID)
 	if err != nil && err != ErrNotFound {
 		log.Println("error deleting user:", err)
 	}
@@ -231,7 +231,7 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	b.userMutex.RLock()
 	defer b.userMutex.RUnlock()
 	var ret loginReturn
-	users, err := b.userTable.Find(map[string]any{"username": req.Username})
+	users, err := b.userTable.Find(r.Context(), map[string]any{"username": req.Username})
 	if errors.Is(err, ErrNotFound) || len(users) != 1 {
 		ret.Error = "invalid"
 		w.WriteHeader(http.StatusUnauthorized)
@@ -269,7 +269,7 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 			upd["timeout"] = timeout
 			ret.Timeout = timeout - time.Now().Unix()
 		}
-		b.userTable.PartUpdate(u.ID, upd)
+		b.userTable.PartUpdate(r.Context(), u.ID, upd)
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(ret)
 	}

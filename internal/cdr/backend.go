@@ -49,9 +49,9 @@ func (b *CDRBackend) AddBackend(back *backend.Backend) {
 	b.back = back
 }
 
-func (s CDRBackend) AddCrash(cr backend.IndividualCrash) bool {
-	res := s.db.Collection("versions").FindOne(context.Background(), bson.M{"version": cr.Version})
-	return res.Err() != mongo.ErrNoDocuments
+func (s CDRBackend) ShouldAddCrash(ctx context.Context, cr backend.IndividualCrash) bool {
+	res := s.db.Collection("versions").FindOne(ctx, bson.M{"version": cr.Version})
+	return res.Err() == nil
 }
 
 func (b CDRBackend) Extension(mux *http.ServeMux) {

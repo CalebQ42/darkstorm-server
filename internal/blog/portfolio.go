@@ -52,7 +52,7 @@ const (
 	<select
 	id='techSelect'
 	name='tech'
-	hx-get='http://localhost:2323/blog/portfolio'
+	hx-get='https://api.darkstorm.tech/blog/portfolio'
 	hx-target='#projects'>
 		%v
 	</select>

@@ -21,7 +21,7 @@ func filesRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if os.IsNotExist(err) {
 			pageContent = "<p>404 Not Found</p>"
-			// w.WriteHeader(http.StatusNotFound)
+			w.WriteHeader(http.StatusNotFound)
 		} else {
 			pageContent = "<p>Server error!</p>"
 			w.WriteHeader(http.StatusInternalServerError)
@@ -52,9 +52,5 @@ func filesRequest(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if r.Header.Get("Hx-Request") == "true" {
-		w.Write([]byte(pageContent))
-	} else {
-		sendContent(w, r, pageContent, "Files", "")
-	}
+	sendContent(w, r, pageContent, "Files", "")
 }

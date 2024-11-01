@@ -24,11 +24,7 @@ func latestBlogsHandle(w http.ResponseWriter, r *http.Request) {
 	for _, b := range latest {
 		out += b.HTMX(blogApp, r.Context())
 	}
-	if r.Header.Get("Hx-Request") == "true" {
-		w.Write([]byte("<title>Darkstorm.tech</title>" + out))
-	} else {
-		sendContent(w, r, out, "", "")
-	}
+	sendContent(w, r, out, "", "")
 }
 
 func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
@@ -44,9 +40,5 @@ func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
 		sendContent(w, r, "Error getting page", "", "")
 		return
 	}
-	if r.Header.Get("Hx-Request") == "true" {
-		w.Write([]byte("<title>" + bl.Title + "</title>" + bl.HTMX(blogApp, r.Context())))
-	} else {
-		sendContent(w, r, bl.HTMX(blogApp, r.Context()), bl.Title, bl.Favicon)
-	}
+	sendContent(w, r, bl.HTMX(blogApp, r.Context()), bl.Title, bl.Favicon)
 }

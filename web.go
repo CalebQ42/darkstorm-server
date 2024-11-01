@@ -17,6 +17,13 @@ const (
 )
 
 func sendContent(w http.ResponseWriter, r *http.Request, content string, title string, favicon string) {
+	if title == "" {
+		title = "Darkstorm.tech"
+	}
+	if r.Header.Get("Hx-Request") == "true" {
+		w.Write([]byte("<title>" + title + "</title>" + content))
+		return
+	}
 	if r.URL.Query().Get("contentOnly") == "true" {
 		json.NewEncoder(w).Encode(map[string]string{"content": content, "title": title, "favicon": favicon})
 		return

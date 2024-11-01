@@ -14,9 +14,5 @@ func portfolioRequest(w http.ResponseWriter, r *http.Request) {
 		sendContent(w, r, "Error getting portfolio", "", "")
 		return
 	}
-	if r.Header.Get("Hx-Request") == "true" {
-		w.Write([]byte("<title>Portfolio</title>" + proj.FullHTMX(r.Context(), blogApp, selectedTech)))
-	} else {
-		sendContent(w, r, proj.FullHTMX(r.Context(), blogApp, selectedTech), "Portfolio", "")
-	}
+	sendContent(w, r, proj.FullHTMX(r.Context(), blogApp, selectedTech), "Portfolio", "")
 }

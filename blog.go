@@ -25,7 +25,7 @@ func latestBlogsHandle(w http.ResponseWriter, r *http.Request) {
 		out += b.HTMX(blogApp, r.Context())
 	}
 	if r.Header.Get("Hx-Request") == "true" {
-		w.Write([]byte(out))
+		w.Write([]byte("<title>Darkstorm.tech</title>" + out))
 	} else {
 		sendContent(w, r, out, "", "")
 	}
@@ -45,7 +45,7 @@ func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
 		return
 	}
 	if r.Header.Get("Hx-Request") == "true" {
-		w.Write([]byte(bl.HTMX(blogApp, r.Context())))
+		w.Write([]byte("<title>" + bl.Title + "</title>" + bl.HTMX(blogApp, r.Context())))
 	} else {
 		sendContent(w, r, bl.HTMX(blogApp, r.Context()), bl.Title, bl.Favicon)
 	}

@@ -3,6 +3,7 @@ package blog
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -13,11 +14,21 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const authorInfo = `
+<table><tr>
+	<td><img src="%v" alt="%v" class='author-pic'></td>
+	<td><h3 class="author-title">%v</h3>%v</td>
+</tr></table>`
+
 type Author struct {
 	ID     string `json:"id" bson:"_id"`
 	Name   string `json:"name" bson:"name"`
 	About  string `json:"about" bson:"about"`
 	PicURL string `json:"picurl" bson:"picurl"`
+}
+
+func (a Author) HTML() string {
+	return fmt.Sprintf(authorInfo, a.PicURL, a.Name+"'s profile picture", a.Name, a.About)
 }
 
 func (b *BlogApp) AboutMe(ctx context.Context) (*Author, error) {

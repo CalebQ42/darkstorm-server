@@ -104,7 +104,7 @@ func (b *Backend) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Methods", "*")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
-			w.Header().Set("Access-Control-Allow-Headers", "Access-Control-Allow-Headers, Authorization, X-API-Key, Origin, Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
 		}
 	}
 	b.m.ServeHTTP(w, r)

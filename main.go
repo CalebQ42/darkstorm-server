@@ -27,23 +27,30 @@ var (
 	back        *backend.Backend
 	blogApp     *blog.BlogApp
 	webRoot     *string
+	testing     *bool
 )
 
 func main() {
 	mongoURL := flag.String("mongo", "", "Enables MongoDB usage for Darkstorm backend.")
 	webRoot = flag.String("web-root", "", "Sets root directory of web server.")
 	addr := flag.String("addr", ":443", "Set listen address. Defaults to \":443\"")
+	testing = flag.Bool("testing", false, "Start in testing mode. If you don't know what this is, don't use it.")
 	flag.Parse()
-	if flag.NArg() != 1 {
+	if *testing {
+		*addr = ":4242"
+	}
+	if !*testing && flag.NArg() != 1 {
 		log.Fatal("You must specify key directory. ex: darkstorm-server /etc/web-keys")
 	}
 	if *mongoURL == "" || *webRoot == "" {
 		log.Fatal("SPECIFY MONGO AND WEB-ROOT OR I WILL DIE, OH NO, THEY'RE COMING FOR ME.... **DEATH NOISES**")
 	}
-	go func() {
-		log.Println("error redirecting http traffice:",
-			http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect)))
-	}()
+	if !*testing {
+		go func() {
+			log.Println("error redirecting http traffice:",
+				http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect)))
+		}()
+	}
 	mux := http.NewServeMux()
 	setupMongo(*mongoURL)
 	setupBackend(mux)
@@ -52,20 +59,33 @@ func main() {
 		Addr:    *addr,
 		Handler: mux,
 	}
-	err := serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "fullchain.pem"), filepath.Join(flag.Arg(0), "key.pem"))
+	var err error
+	if *testing {
+		err = serv.ListenAndServe()
+	} else {
+		err = serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "fullchain.pem"), filepath.Join(flag.Arg(0), "key.pem"))
+	}
 	log.Println("webserver closed:", err)
 }
 
 func setupMongo(uri string) {
-	mongoCert, err := tls.LoadX509KeyPair(filepath.Join(flag.Arg(0), "mongo.pem"), filepath.Join(flag.Arg(0), "key.pem"))
-	if err != nil {
-		log.Fatal("error loading mongo keys:", err)
-	}
-	mongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(uri).SetTLSConfig(&tls.Config{
-		Certificates: []tls.Certificate{mongoCert},
-	}))
-	if err != nil {
-		log.Fatal("error connecting to mongo:", err)
+	if !*testing {
+		mongoCert, err := tls.LoadX509KeyPair(filepath.Join(flag.Arg(0), "mongo.pem"), filepath.Join(flag.Arg(0), "key.pem"))
+		if err != nil {
+			log.Fatal("error loading mongo keys:", err)
+		}
+		mongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(uri).SetTLSConfig(&tls.Config{
+			Certificates: []tls.Certificate{mongoCert},
+		}))
+		if err != nil {
+			log.Fatal("error connecting to mongo:", err)
+		}
+	} else {
+		var err error
+		mongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(uri))
+		if err != nil {
+			log.Fatal("error connecting to mongo:", err)
+		}
 	}
 }
 
@@ -78,16 +98,28 @@ func setupBackend(mux *http.ServeMux) {
 		swassistant.NewSWBackend(mongoClient.Database("swassistant")),
 		cdr.NewBackend(mongoClient.Database("cdr")),
 	)
-	back.AddCorsAddress("https://darkstorm.tech")
+	if !*testing {
+		back.AddCorsAddress("https://darkstorm.tech")
+	} else {
+		back.AddCorsAddress("*")
+	}
 	if err != nil {
 		log.Fatal("error setting up backend:", err)
 	}
-	mux.Handle("api.darkstorm.tech/", back)
+	if !*testing {
+		mux.Handle("api.darkstorm.tech/", back)
+	} else {
+		go func() {
+			http.ListenAndServe(":2323", back)
+		}()
+	}
 }
 
 func setupWebsite(mux *http.ServeMux) {
-	url, _ := url.Parse("https://localhost:30000")
-	mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
+	if !*testing {
+		url, _ := url.Parse("https://localhost:30000")
+		mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
+	}
 	mux.HandleFunc("GET /files/{w...}", filesRequest)
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
 	mux.HandleFunc("/", mainHandle)

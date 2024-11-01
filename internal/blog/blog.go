@@ -3,6 +3,7 @@ package blog
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,6 +16,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const (
+	blogTitle  = "<h1 class='blog-title'><a hx-push-url='true' hx-get='/%v' hx-target='#content' href='/%v' style='text-decoration:none'>%v</a></h1>"
+	blogAuthor = "<h4 class='blog-author'><i><b>By %v</b></i></h4>"
+	blogCreate = "<h5 class='blog-time'><i>Written on: %v</i></h5>"
+	blogMain   = "<div class='blog'>%v</div>"
+)
+
 type Blog struct {
 	ID         string `json:"id" bson:"_id"`
 	Author     string `json:"author" bson:"author"`
@@ -25,6 +33,30 @@ type Blog struct {
 	Draft      bool   `json:"draft" bson:"draft"`
 	CreateTime int64  `json:"createTime" bson:"createTime"`
 	UpdateTime int64  `json:"updateTime" bson:"updateTime"`
+}
+
+func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
+	if b.StaticPage {
+		return b.Blog
+	}
+	out := fmt.Sprintf(blogTitle, b.ID, b.ID, b.Title)
+	auth, err := blogApp.GetAuthor(ctx, b)
+	if err == nil {
+		out += fmt.Sprintf(blogAuthor, auth.Name)
+	} else {
+		out += fmt.Sprintf(blogAuthor, "unknown")
+	}
+	cTime := time.Unix(b.CreateTime, 0).Format(time.DateOnly)
+	if b.UpdateTime > b.CreateTime {
+		out += fmt.Sprintf(blogCreate, cTime+"; Last updated on: "+time.Unix(b.UpdateTime, 0).Format(time.DateOnly))
+	} else {
+		out += fmt.Sprintf(blogCreate, cTime)
+	}
+	out += fmt.Sprintf(blogMain, b.Blog)
+	if err == nil {
+		out += "<h2 class='blog-author-info'>About the author:</h2>" + auth.HTML()
+	}
+	return out
 }
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {
@@ -95,7 +127,11 @@ func (b *BlogApp) reqBlog(w http.ResponseWriter, r *http.Request) {
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 		return
 	}
-	json.NewEncoder(w).Encode(blog)
+	if r.Header.Get("Hx-Request") == "true" {
+		w.Write([]byte(blog.HTMX(b, r.Context())))
+	} else {
+		json.NewEncoder(w).Encode(blog)
+	}
 }
 
 func (b *BlogApp) createBlog(w http.ResponseWriter, r *http.Request) {

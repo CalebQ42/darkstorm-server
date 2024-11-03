@@ -278,13 +278,22 @@ func (b *BlogApp) reqLatestBlogs(w http.ResponseWriter, r *http.Request) {
 
 type BlogListResult struct {
 	ID         string `json:"id" bson:"_id"`
+	Title      string `json:"title" bson:"title"`
 	CreateTime int    `json:"createTime" bson:"createTime"`
 }
 
+func (b BlogListResult) HTMX() string {
+	return "<a class='blog-list-item' href='https://darkstorm.tech/" +
+		b.ID +
+		"' hx-push-url='true' hx-target='#content' hx-get='/" +
+		b.ID +
+		"'>" + b.Title + "</a>"
+}
+
 func (b *BlogApp) BlogList(ctx context.Context, page int64) ([]BlogListResult, error) {
-	res, err := b.blogCol.Find(ctx, bson.M{}, options.Find().
-		SetProjection(bson.M{"_id": 1, "createTime": 1}).
-		SetSort(bson.M{"createTime": 1}).
+	res, err := b.blogCol.Find(ctx, bson.M{"staticPage": false, "draft": false}, options.Find().
+		SetProjection(bson.M{"_id": 1, "createTime": 1, "title": 1}).
+		SetSort(bson.M{"createTime": -1}).
 		SetLimit(50).
 		SetSkip(page*50))
 	if err != nil {

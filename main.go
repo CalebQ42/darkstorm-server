@@ -122,6 +122,7 @@ func setupWebsite(mux *http.ServeMux) {
 	}
 	mux.HandleFunc("GET /files/{w...}", filesRequest)
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
+	mux.HandleFunc("GET /list", blogListHandle)
 	mux.HandleFunc("/", mainHandle)
 }
 

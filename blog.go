@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 )
@@ -41,4 +42,31 @@ func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
 		return
 	}
 	sendContent(w, r, bl.HTMX(blogApp, r.Context()), bl.Title, bl.Favicon)
+}
+
+func blogListHandle(w http.ResponseWriter, r *http.Request) {
+	pag, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	list, err := blogApp.BlogList(r.Context(), int64(pag))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		sendContent(w, r, "Error getting page", "", "")
+		return
+	}
+	out := ""
+	for i := range list {
+		out += "<p>" + list[i].HTMX() + "</p>"
+	}
+	if pag > 0 || len(list) == 50 {
+		out += "<div id='blog-list-page-selector'>"
+		if pag > 0 {
+			pagNum := strconv.Itoa(pag - 1)
+			out += "<a href='https://darkstorm.tech/list?page=" + pagNum + "' hx-get='/list?page='" + pagNum + "' hx-push-url='true' hx-target='#content'>&lt;Previous</a>"
+		}
+		if len(list) == 50 {
+			pagNum := strconv.Itoa(pag + 1)
+			out += "<a href='https://darkstorm.tech/list?page=" + pagNum + "' hx-get='/list?page='" + pagNum + "' hx-push-url='true' hx-target='#content'>Next&gt;</a>"
+		}
+		out += "</div>"
+	}
+	sendContent(w, r, out, "", "")
 }

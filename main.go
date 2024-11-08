@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"flag"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -100,9 +101,35 @@ func setupBackend(mux *http.ServeMux) {
 	)
 	if !*testing {
 		back.AddCorsAddress("https://darkstorm.tech")
+		var pubFil, privFil *os.File
+		defer pubFil.Close()
+		defer privFil.Close()
+		var pub, priv []byte
+		pubFil, err = os.Open(filepath.Join(flag.Arg(0), "darkstorm-pub.key"))
+		if err != nil {
+			log.Println("error openning darkstorm user public key:", err)
+			goto here
+		}
+		pub, err = io.ReadAll(pubFil)
+		if err != nil {
+			log.Println("error reading darkstorm user public key:", err)
+			goto here
+		}
+		privFil, err = os.Open(filepath.Join(flag.Arg(0), "darkstorm-priv.key"))
+		if err != nil {
+			log.Println("error openning darkstorm user private key:", err)
+			goto here
+		}
+		priv, err = io.ReadAll(privFil)
+		if err != nil {
+			log.Println("error reading darkstorm user private key:", err)
+			goto here
+		}
+		back.AddUserAuth(db.NewMongoTable[backend.User](mongoClient.Database("darkstorm").Collection("users")), pub, priv)
 	} else {
 		back.AddCorsAddress("*")
 	}
+here:
 	if err != nil {
 		log.Fatal("error setting up backend:", err)
 	}

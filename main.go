@@ -132,6 +132,10 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 		latestBlogsHandle(w, r)
 		return
 	}
+	if path == "login" {
+		sendContent(w, r, loginScreen, "", "")
+		return
+	}
 	stat, err := os.Stat(filepath.Join(*webRoot, path))
 	if err == nil && !stat.IsDir() {
 		http.ServeFile(w, r, filepath.Join(*webRoot, path))
@@ -146,3 +150,14 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	blogHandle(w, r, path)
 }
+
+const loginScreen = `
+<script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
+<form id="loginForm" hx-ext='json-enc' hx-post="https://api.darkstorm.tech/users/login">
+	<label for="username">Username:</label>
+	<input name="username" id="usernameInput"></input>
+	<label for="password">Password:</label>
+	<input name="password" type="password" id="passwordInput"></input>
+	<button id="loginButton" type="submit">Login</button>
+</form>
+`

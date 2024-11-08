@@ -125,7 +125,7 @@ func setupBackend(mux *http.ServeMux) {
 			log.Println("error reading darkstorm user private key:", err)
 			goto here
 		}
-		back.AddUserAuth(db.NewMongoTable[backend.User](mongoClient.Database("darkstorm").Collection("users")), pub, priv)
+		back.AddUserAuth(db.NewMongoTable[backend.User](mongoClient.Database("darkstorm").Collection("users")), priv, pub)
 	} else {
 		back.AddCorsAddress("*")
 	}
@@ -180,7 +180,7 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 
 const loginScreen = `
 <script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
-<form id="loginForm" hx-ext='json-enc' hx-post="https://api.darkstorm.tech/users/login">
+<form id="loginForm" onsubmit="login(event)">
 	<label for="username">Username:</label>
 	<input name="username" id="usernameInput"></input>
 	<label for="password">Password:</label>

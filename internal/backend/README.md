@@ -17,7 +17,10 @@ This is a purposefully "simple" application backend made specifically for _my_ a
     crash: true, // crash reports
     management: false, // managing
     // further permissions can be added as needed
-  }
+  },
+  allowedOrigins:[
+  	"http://foo.bar" // Request with this origin header is considered to be under this key.
+  ]
 }
 ```
 

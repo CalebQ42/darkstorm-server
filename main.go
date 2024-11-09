@@ -147,9 +147,12 @@ func setupWebsite(mux *http.ServeMux) {
 		url, _ := url.Parse("https://localhost:30000")
 		mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
 	}
+	edit := NewBlogEditor(blogApp, back)
 	mux.HandleFunc("GET /files/{w...}", filesRequest)
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
 	mux.HandleFunc("GET /list", blogListHandle)
+	mux.HandleFunc("GET /login", edit.LoginPage)
+	mux.HandleFunc("GET /editor/", edit.Editor)
 	mux.HandleFunc("/", mainHandle)
 }
 
@@ -157,10 +160,6 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(path.Clean(r.URL.Path), "/")
 	if path == "/" || path == "" {
 		latestBlogsHandle(w, r)
-		return
-	}
-	if path == "login" {
-		sendContent(w, r, loginScreen, "", "")
 		return
 	}
 	stat, err := os.Stat(filepath.Join(*webRoot, path))
@@ -177,14 +176,3 @@ func mainHandle(w http.ResponseWriter, r *http.Request) {
 	}
 	blogHandle(w, r, path)
 }
-
-const loginScreen = `
-<script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
-<form id="loginForm" onsubmit="login(event)">
-	<label for="username">Username:</label>
-	<input name="username" id="usernameInput"></input>
-	<label for="password">Password:</label>
-	<input name="password" type="password" id="passwordInput"></input>
-	<button id="loginButton" type="submit">Login</button>
-</form>
-`

@@ -39,4 +39,29 @@ func (e Editor) LoginPage(w http.ResponseWriter, r *http.Request) {
 	sendContent(w, r, string(dat), "", "")
 }
 
-func (e Editor) Editor(w http.ResponseWriter, r *http.Request) {}
+func (e Editor) Editor(w http.ResponseWriter, r *http.Request) {
+	hdr, err := back.ParseHeader(r)
+	if err == backend.ErrApiKeyUnauthorized || err == backend.ErrTokenUnauthorized || hdr == nil || hdr.User == nil {
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Location", `{"path":"/login", "target":"#content"}`)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html")
+		http.Redirect(w, r, "https://darkstorm.tech/login", http.StatusSeeOther)
+		return
+	}
+	page, err := editorFS.Open("embed/editor.html")
+	defer page.Close()
+	if err != nil {
+		log.Println("error getting editor.html:", err)
+		sendContent(w, r, "error getting page", "", "")
+		return
+	}
+	dat, err := io.ReadAll(page)
+	if err != nil {
+		log.Println("error reading editor.html:", err)
+		sendContent(w, r, "error getting page", "", "")
+		return
+	}
+	sendContent(w, r, string(dat), "", "")
+}

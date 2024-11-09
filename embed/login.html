@@ -1,14 +1,9 @@
-<script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
-<script>
-	document.addEventListener("htmx:beforeOnLoad", function (e) {
-		console.log(e);
-		e.preventDefault();
-	});
-</script>
-<form id="loginForm" hx-post="https://api.darkstorm.tech/user/login">
+<div id="invisiblePusher" hx-push-url="/editor"></div>
+<form id="loginForm" onsubmit="login(event)">
 	<label for="username">Username:</label>
 	<input name="username" id="usernameInput"></input>
 	<label for="password">Password:</label>
 	<input name="password" type="password" id="passwordInput"></input>
+	<p id="formResult"></p>
 	<button id="loginButton" type="submit">Login</button>
 </form>

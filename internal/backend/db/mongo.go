@@ -39,6 +39,9 @@ func (m *MongoTable[T]) Find(ctx context.Context, values map[string]any) ([]T, e
 	}
 	var out []T
 	err = res.All(ctx, &out)
+	if len(out) == 0 {
+		return nil, backend.ErrNotFound
+	}
 	return out, err
 }
 

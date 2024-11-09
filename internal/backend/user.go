@@ -1,12 +1,14 @@
 package backend
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -208,9 +210,10 @@ type loginRequest struct {
 }
 
 type loginReturn struct {
-	Token   string `json:"token"`
-	Error   string `json:"error"`
-	Timeout int64  `json:"timeout"`
+	Token    string `json:"token"`
+	Error    string `json:"error"`
+	ErrorMsg string `json:"errorMsg"`
+	Timeout  int64  `json:"timeout"`
 }
 
 func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
@@ -234,6 +237,7 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	users, err := b.userTable.Find(r.Context(), map[string]any{"username": req.Username})
 	if errors.Is(err, ErrNotFound) || len(users) != 1 {
 		ret.Error = "invalid"
+		ret.ErrorMsg = "Incorrect username or password"
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(ret)
 		return
@@ -241,7 +245,8 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	u := users[0]
 	if time.Unix(u.Timeout, 0).After(time.Now()) {
 		ret.Error = "timeout"
-		ret.Timeout = time.Now().Unix() - u.Timeout
+		ret.Timeout = u.Timeout - time.Now().Unix()
+		ret.ErrorMsg = "Timed out for " + strconv.Itoa(int(ret.Timeout)) + " seconds"
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(ret)
 		return
@@ -260,8 +265,15 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		json.NewEncoder(w).Encode(ret)
+		if u.Fails != 0 {
+			err = b.userTable.PartUpdate(context.Background(), u.ID, map[string]any{"fails": 0})
+			if err != nil {
+				log.Println("error resetting fails after successful login:", err)
+			}
+		}
 	} else {
 		ret.Error = "invalid"
+		ret.ErrorMsg = "Incorrect username or password"
 		upd := map[string]any{"fails": u.Fails + 1}
 		if (u.Fails+1)%3 == 0 {
 			minutes := 3 ^ ((u.Fails / 3) - 1)

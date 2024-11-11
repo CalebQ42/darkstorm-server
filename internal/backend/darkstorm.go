@@ -25,16 +25,16 @@ type Backend struct {
 	corsAddr        string
 	jwtPriv         ed25519.PrivateKey
 	jwtPub          ed25519.PublicKey
-	userMutex       sync.RWMutex
+	userCreateMutex sync.Mutex
 }
 
 // Create a new Backend with the given apps. keyTable must be specified.
 func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 	b := &Backend{
-		keyTable:  keyTable,
-		m:         &http.ServeMux{},
-		apps:      make(map[string]App),
-		userMutex: sync.RWMutex{},
+		keyTable:        keyTable,
+		m:               &http.ServeMux{},
+		apps:            make(map[string]App),
+		userCreateMutex: sync.Mutex{},
 	}
 	b.m.Handle("GET /robots.txt", http.FileServerFS(robotEmbed))
 	var hasLog, hasCrash bool

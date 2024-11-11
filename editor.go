@@ -13,6 +13,18 @@ import (
 //go:embed embed
 var editorFS embed.FS
 
+const loginPage = `
+<script src="https://unpkg.com/htmx-ext-json-enc@2.0.1/json-enc.js"></script>
+<form id="loginForm" hx-post="https://api.darkstorm.tech/user/login" hx-ext="json-enc">
+	<label for="username">Username:</label>
+	<input name="username" id="usernameInput"></input>
+	<label for="password">Password:</label>
+	<input name="password" type="password" id="passwordInput"></input>
+	<p id="formResult"></p>
+	<button id="loginButton" type="submit">Login</button>
+</form>
+`
+
 type Editor struct {
 	blogApp *blog.BlogApp
 	back    *backend.Backend
@@ -23,20 +35,11 @@ func NewBlogEditor(blogApp *blog.BlogApp, back *backend.Backend) Editor {
 }
 
 func (e Editor) LoginPage(w http.ResponseWriter, r *http.Request) {
-	page, err := editorFS.Open("embed/login.html")
-	defer page.Close()
-	if err != nil {
-		log.Println("error getting login.html:", err)
-		sendContent(w, r, "error getting page", "", "")
-		return
-	}
-	dat, err := io.ReadAll(page)
-	if err != nil {
-		log.Println("error reading login.html:", err)
-		sendContent(w, r, "error getting page", "", "")
-		return
-	}
-	sendContent(w, r, string(dat), "", "")
+	sendContent(w, r, loginPage, "", "")
+}
+
+func (e Editor) TrueLogin(w http.ResponseWriter, r *http.Request) {
+	//TODO
 }
 
 func (e Editor) Editor(w http.ResponseWriter, r *http.Request) {

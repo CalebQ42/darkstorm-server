@@ -6,9 +6,9 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -54,6 +54,38 @@ type User struct {
 	Fails          int               `json:"fails" bson:"fails"`
 	Timeout        int64             `json:"timeout" bson:"timeout"`
 	PasswordChange int64             `json:"passwordChange" bson:"passwordChange"`
+}
+
+var (
+	ErrLoginTimeout   = errors.New("user is timed out")
+	ErrLoginIncorrect = errors.New("username or password is incorrect")
+)
+
+// Tries to login with the given username and password.
+// If the user exists, but is timed out, the user is still returned.
+func (b *Backend) TryLogin(ctx context.Context, username, password string) (User, error) {
+	users, err := b.userTable.Find(ctx, map[string]any{"username": username})
+	if err == ErrNotFound {
+		return User{}, ErrLoginIncorrect
+	}
+	if len(users) > 0 {
+		log.Println("duplicate username detected, fix immediately:", username)
+	}
+	user := users[0]
+	if time.Unix(user.Timeout, 0).After(time.Now()) {
+		return user, ErrLoginTimeout
+	}
+	if valid, _ := user.ValidatePassword(password); !valid {
+		upd := map[string]any{"fails": user.Fails + 1}
+		if (user.Fails+1)%3 == 0 {
+			minutes := 3 ^ (((user.Fails + 1) / 3) - 1)
+			upd["timeout"] = time.Now().Add(time.Minute * time.Duration(minutes)).Unix()
+			b.userTable.PartUpdate(ctx, user.ID, upd)
+			return user, ErrLoginTimeout
+		}
+		return User{}, ErrLoginIncorrect
+	}
+	return user, nil
 }
 
 func NewUser(username, password, email string) (User, error) {
@@ -139,8 +171,8 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// TODO: filter offensive words/phrases
-	b.userMutex.Lock()
-	defer b.userMutex.Unlock()
+	b.userCreateMutex.Lock()
+	defer b.userCreateMutex.Unlock()
 	matchUsername, err := b.userTable.Find(r.Context(), map[string]any{"username": req.Username})
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		log.Println("error when checking for username collisions:", err)
@@ -196,8 +228,6 @@ func (b *Backend) deleteUser(w http.ResponseWriter, r *http.Request) {
 		ReturnError(w, http.StatusBadRequest, "badRequest", "Bad Request")
 		return
 	}
-	b.userMutex.Lock()
-	defer b.userMutex.Unlock()
 	err = b.userTable.Remove(r.Context(), userID)
 	if err != nil && err != ErrNotFound {
 		log.Println("error deleting user:", err)
@@ -231,58 +261,23 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 		ReturnError(w, http.StatusBadRequest, "invalidBody", "Bad request")
 		return
 	}
-	b.userMutex.RLock()
-	defer b.userMutex.RUnlock()
 	var ret loginReturn
-	users, err := b.userTable.Find(r.Context(), map[string]any{"username": req.Username})
-	if errors.Is(err, ErrNotFound) || len(users) != 1 {
-		ret.Error = "invalid"
-		ret.ErrorMsg = "Incorrect username or password"
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ret)
-		return
-	}
-	u := users[0]
-	if time.Unix(u.Timeout, 0).After(time.Now()) {
-		ret.Error = "timeout"
-		ret.Timeout = u.Timeout - time.Now().Unix()
-		ret.ErrorMsg = "Timed out for " + strconv.Itoa(int(ret.Timeout)) + " seconds"
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ret)
-		return
-	}
-	hash, err := u.HashPassword(req.Password)
-	if err != nil {
-		log.Println("error hashing request password:", err)
-		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
-		return
-	}
-	if u.Password == hash {
+	u, err := b.TryLogin(r.Context(), req.Username, req.Password)
+	if err == nil {
 		ret.Token, err = b.GenerateJWT(u.toReqUser())
 		if err != nil {
-			log.Println("error generating token:", err)
 			ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 			return
 		}
-		json.NewEncoder(w).Encode(ret)
-		if u.Fails != 0 {
-			err = b.userTable.PartUpdate(context.Background(), u.ID, map[string]any{"fails": 0})
-			if err != nil {
-				log.Println("error resetting fails after successful login:", err)
-			}
-		}
 	} else {
-		ret.Error = "invalid"
-		ret.ErrorMsg = "Incorrect username or password"
-		upd := map[string]any{"fails": u.Fails + 1}
-		if (u.Fails+1)%3 == 0 {
-			minutes := 3 ^ ((u.Fails / 3) - 1)
-			timeout := time.Now().Add(time.Duration(minutes) * time.Minute).Unix()
-			upd["timeout"] = timeout
-			ret.Timeout = timeout - time.Now().Unix()
+		if err == ErrLoginTimeout {
+			ret.Error = "timeout"
+			ret.ErrorMsg = fmt.Sprint("Timed out for", u.Timeout, "seconds")
+			ret.Timeout = u.Timeout
+		} else {
+			ret.Error = "incorrect"
+			ret.ErrorMsg = "Incorrect username or password"
 		}
-		b.userTable.PartUpdate(r.Context(), u.ID, upd)
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ret)
 	}
+	json.NewEncoder(w).Encode(ret)
 }

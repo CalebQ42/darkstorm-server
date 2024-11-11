@@ -14,7 +14,7 @@ type IDStruct interface {
 }
 
 type Table[T IDStruct] interface {
-	Get(ctx context.Context, ID string) (data *T, err error)
+	Get(ctx context.Context, ID string) (data T, err error)
 	Find(ctx context.Context, values map[string]any) ([]T, error)
 	Insert(ctx context.Context, data T) error
 	Remove(ctx context.Context, ID string) error

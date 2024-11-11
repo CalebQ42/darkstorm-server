@@ -88,6 +88,41 @@ func (b *Backend) TryLogin(ctx context.Context, username, password string) (User
 	return user, nil
 }
 
+func (b *Backend) VerifyUser(ctx context.Context, token string) (*User, error) {
+	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
+		return b.jwtPub, nil
+	}, jwt.WithIssuer("darkstorm.tech"), jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"EdDSA"}))
+	if err != nil {
+		return nil, err
+	}
+	exp, _ := t.Claims.GetExpirationTime()
+	if exp.Time.Before(time.Now()) {
+		return nil, ErrTokenUnauthorized
+	}
+	sub, err := t.Claims.GetSubject()
+	if err == jwt.ErrInvalidKey {
+		return nil, ErrTokenUnauthorized
+	} else if err != nil {
+		return nil, err
+	}
+	usr, err := b.userTable.Get(ctx, sub)
+	if err == jwt.ErrInvalidKey {
+		return nil, ErrTokenUnauthorized
+	} else if err != nil {
+		return nil, err
+	}
+	iss, err := t.Claims.GetIssuedAt()
+	if err == jwt.ErrInvalidKey {
+		return nil, ErrTokenUnauthorized
+	} else if err != nil {
+		return nil, errors.Join(ErrTokenUnauthorized, err)
+	}
+	if usr.PasswordChange > 0 && iss.Time.Before(time.Unix(usr.PasswordChange, 0)) {
+		return nil, ErrTokenUnauthorized
+	}
+	return usr, nil
+}
+
 func NewUser(username, password, email string) (User, error) {
 	id, err := uuid.NewV7()
 	if err != nil {
@@ -115,7 +150,7 @@ func (u User) GetID() string {
 	return u.ID
 }
 
-func (u User) toReqUser() *ReqestUser {
+func (u User) ToReqUser() *ReqestUser {
 	return &ReqestUser{
 		Perm:     u.Perm,
 		ID:       u.ID,
@@ -205,7 +240,7 @@ func (b *Backend) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var ret createUserReturn
 	ret.Username = u.Username
-	ret.Token, err = b.GenerateJWT(u.toReqUser())
+	ret.Token, err = b.GenerateJWT(u.ToReqUser())
 	if err != nil {
 		log.Println("error generating token:", err)
 		ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
@@ -264,7 +299,7 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	var ret loginReturn
 	u, err := b.TryLogin(r.Context(), req.Username, req.Password)
 	if err == nil {
-		ret.Token, err = b.GenerateJWT(u.toReqUser())
+		ret.Token, err = b.GenerateJWT(u.ToReqUser())
 		if err != nil {
 			ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 			return
@@ -272,7 +307,7 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if err == ErrLoginTimeout {
 			ret.Error = "timeout"
-			ret.ErrorMsg = fmt.Sprint("Timed out for", u.Timeout, "seconds")
+			ret.ErrorMsg = fmt.Sprint("Timed out for", time.Unix(u.Timeout, 0).Sub(time.Now()), "seconds")
 			ret.Timeout = u.Timeout
 		} else {
 			ret.Error = "incorrect"

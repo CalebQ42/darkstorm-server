@@ -18,16 +18,16 @@ func NewMongoTable[T backend.IDStruct](col *mongo.Collection) *MongoTable[T] {
 	}
 }
 
-func (m *MongoTable[T]) Get(ctx context.Context, ID string) (data *T, err error) {
+func (m *MongoTable[T]) Get(ctx context.Context, ID string) (data T, err error) {
 	res := m.col.FindOne(ctx, bson.M{"_id": ID})
 	if res.Err() == mongo.ErrNoDocuments {
-		return nil, backend.ErrNotFound
+		return data, backend.ErrNotFound
 	} else if res.Err() != nil {
-		return nil, res.Err()
+		return data, res.Err()
 	}
 	var out T
 	err = res.Decode(&out)
-	return &out, err
+	return out, err
 }
 
 func (m *MongoTable[T]) Find(ctx context.Context, values map[string]any) ([]T, error) {

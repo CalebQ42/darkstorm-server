@@ -152,7 +152,8 @@ func setupWebsite(mux *http.ServeMux) {
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
 	mux.HandleFunc("GET /list", blogListHandle)
 	mux.HandleFunc("GET /login", edit.LoginPage)
-	mux.HandleFunc("GET /editor/", edit.Editor)
+	mux.HandleFunc("GET /editor", edit.Editor)
+	mux.HandleFunc("POST /login", edit.TrueLogin)
 	mux.HandleFunc("/", mainHandle)
 }
 

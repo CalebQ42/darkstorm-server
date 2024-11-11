@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -64,41 +62,18 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 		}
 		out.Key = &keys[0]
 	}
-	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	if token != "" && b.userTable != nil {
-		t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-			return b.jwtPub, nil
-		}, jwt.WithIssuer("darkstorm.tech"), jwt.WithExpirationRequired(), jwt.WithValidMethods([]string{"EdDSA"}))
-		if err != nil {
-			return out, errors.Join(ErrTokenUnauthorized, err)
-		}
-		exp, _ := t.Claims.GetExpirationTime()
-		if exp.Time.Before(time.Now()) {
-			return out, ErrTokenUnauthorized
-		}
-		sub, err := t.Claims.GetSubject()
-		if err == jwt.ErrInvalidKey {
-			return out, ErrTokenUnauthorized
-		} else if err != nil {
-			return out, errors.Join(ErrTokenUnauthorized, err)
-		}
-		usr, err := b.userTable.Get(r.Context(), sub)
-		if err == jwt.ErrInvalidKey {
-			return out, ErrTokenUnauthorized
-		} else if err != nil {
-			return out, errors.Join(ErrTokenUnauthorized, err)
-		}
-		iss, err := t.Claims.GetIssuedAt()
-		if err == jwt.ErrInvalidKey {
-			return out, ErrTokenUnauthorized
-		} else if err != nil {
-			return out, errors.Join(ErrTokenUnauthorized, err)
-		}
-		if usr.PasswordChange > 0 && iss.Time.Before(time.Unix(usr.PasswordChange, 0)) {
-			return out, ErrTokenUnauthorized
-		}
-		out.User = usr.toReqUser()
+	if b.userTable == nil || r.Header.Get("Authorization") == "" {
+		return out, nil
 	}
+	token := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if token == "" {
+		return out, nil
+	}
+	usr, err := b.VerifyUser(r.Context(), token)
+	if err != nil {
+		return out, err
+	}
+	out.User = usr.ToReqUser()
 	return out, nil
 }
 

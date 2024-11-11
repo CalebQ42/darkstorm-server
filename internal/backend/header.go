@@ -48,7 +48,7 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 		if apiKey.Death > 0 && time.Unix(apiKey.Death, 0).Before(time.Now()) {
 			return nil, ErrApiKeyUnauthorized
 		}
-		out.Key = apiKey
+		out.Key = &apiKey
 	} else {
 		fmt.Println("origin:", r.Header.Get("origin"))
 		keys, err := b.keyTable.Find(r.Context(), map[string]any{"allowedOrigins": r.Header.Get("origin")})

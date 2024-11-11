@@ -37,10 +37,10 @@ func (b *Backend) GenerateJWT(r *ReqestUser) (string, error) {
 		return "", errors.New("user management not enabled")
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodEdDSA, jwt.RegisteredClaims{
-		ID:        r.ID,
 		Issuer:    "darkstorm.tech",
 		IssuedAt:  jwt.NewNumericDate(time.Now()),
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(12 * time.Hour)),
+		Subject:   r.ID,
 	}).SignedString(b.jwtPriv)
 }
 
@@ -68,7 +68,7 @@ func (b *Backend) TryLogin(ctx context.Context, username, password string) (User
 	if err == ErrNotFound {
 		return User{}, ErrLoginIncorrect
 	}
-	if len(users) > 0 {
+	if len(users) > 1 {
 		log.Println("duplicate username detected, fix immediately:", username)
 	}
 	user := users[0]
@@ -106,7 +106,7 @@ func (b *Backend) VerifyUser(ctx context.Context, token string) (*User, error) {
 		return nil, err
 	}
 	usr, err := b.userTable.Get(ctx, sub)
-	if err == jwt.ErrInvalidKey {
+	if err == ErrNotFound {
 		return nil, ErrTokenUnauthorized
 	} else if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (b *Backend) VerifyUser(ctx context.Context, token string) (*User, error) {
 	if usr.PasswordChange > 0 && iss.Time.Before(time.Unix(usr.PasswordChange, 0)) {
 		return nil, ErrTokenUnauthorized
 	}
-	return usr, nil
+	return &usr, nil
 }
 
 func NewUser(username, password, email string) (User, error) {

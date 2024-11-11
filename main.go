@@ -147,13 +147,12 @@ func setupWebsite(mux *http.ServeMux) {
 		url, _ := url.Parse("https://localhost:30000")
 		mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
 	}
-	edit := NewBlogEditor(blogApp, back)
 	mux.HandleFunc("GET /files/{w...}", filesRequest)
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
 	mux.HandleFunc("GET /list", blogListHandle)
-	mux.HandleFunc("GET /login", edit.LoginPage)
-	mux.HandleFunc("GET /editor", edit.Editor)
-	mux.HandleFunc("POST /login", edit.TrueLogin)
+	mux.HandleFunc("GET /login", loginPageRequest)
+	mux.HandleFunc("GET /editor/", editorRequest)
+	mux.HandleFunc("POST /login", trueLoginRequest)
 	mux.HandleFunc("/", mainHandle)
 }
 

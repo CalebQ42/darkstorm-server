@@ -15,7 +15,7 @@ import (
 var editorFS embed.FS
 
 const loginPage = `
-<form id="loginForm" hx-post="/login">
+<form id="loginForm" hx-post="/login" hx-target="#formResult">
 	<label for="username">Username:</label>
 	<input name="username" id="usernameInput" onkeydown="return event.key != 'Enter';"></input>
 	<label for="password">Password:</label>
@@ -25,19 +25,25 @@ const loginPage = `
 </form>
 `
 
-func LoginPage(w http.ResponseWriter, r *http.Request) {
+func loginPageRequest(w http.ResponseWriter, r *http.Request) {
 	sendContent(w, r, loginPage, "", "")
 }
 
-func TrueLogin(w http.ResponseWriter, r *http.Request) {
+func trueLoginRequest(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") != "true" {
 		sendContent(w, r, "<p>Bad request</p>", "", "")
+		return
 	}
-	u, err := back.TryLogin(r.Context(), r.URL.Query().Get("username"), r.URL.Query().Get("password"))
+	err := r.ParseForm()
+	if err != nil {
+		sendContent(w, r, "<p>Bad request</p>", "", "")
+		return
+	}
+	u, err := back.TryLogin(r.Context(), r.FormValue("username"), r.FormValue("password"))
 	if err != nil {
 		if err == backend.ErrLoginTimeout {
 			sendContent(w, r, fmt.Sprint("<p>Timed out for", time.Unix(u.Timeout, 0).Sub(time.Now()), "</p>"), "", "")
-		} else if err == backend.ErrLoginTimeout {
+		} else if err == backend.ErrLoginIncorrect {
 			sendContent(w, r, "<p>Username or password invalid</p>", "", "")
 		} else {
 			log.Println("error trying to login:", err)
@@ -55,10 +61,9 @@ func TrueLogin(w http.ResponseWriter, r *http.Request) {
 	sendContent(w, r, "<p hx-get='/editor' hx-push-url='true' hx-trigger='load' hx-target='#content'>Successful Login</p>", "", "")
 }
 
-func Editor(w http.ResponseWriter, r *http.Request) {
+func editorRequest(w http.ResponseWriter, r *http.Request) {
 	authCookie, err := r.Cookie("blogAuthToken")
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
 		if err != http.ErrNoCookie {
 			log.Println("error getting auth cookie:", err)
 		}
@@ -67,7 +72,6 @@ func Editor(w http.ResponseWriter, r *http.Request) {
 	}
 	usr, err := back.VerifyUser(r.Context(), authCookie.Value)
 	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
 		if err != backend.ErrTokenUnauthorized {
 			log.Println("error authorizing JWT token:", err)
 		}
@@ -95,5 +99,5 @@ func editorRedirect(w http.ResponseWriter, r *http.Request, path string) {
 		w.Header().Set("HX-Location", `{"path": "`+path+`", "target":"#content"}`)
 		return
 	}
-	http.Redirect(w, r, "https://darkstorm.tech"+path, http.StatusSeeOther)
+	http.Redirect(w, r, "https://darkstorm.tech"+path, http.StatusFound)
 }

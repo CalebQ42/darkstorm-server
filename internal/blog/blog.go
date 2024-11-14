@@ -109,6 +109,11 @@ func (b *BlogApp) Blog(ctx context.Context, ID string, useCache bool) (*Blog, er
 	return &blog, nil
 }
 
+func (b *BlogApp) Contains(ctx context.Context, ID string) bool {
+	res := b.blogCol.FindOne(ctx, bson.M{"_id": ID, "draft": false})
+	return res.Err() == nil
+}
+
 func (b *BlogApp) CleanCache(ID string) {
 	time.Sleep(5 * time.Minute)
 	b.cacheMutex.Lock()

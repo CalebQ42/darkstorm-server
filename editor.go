@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"text/template"
 	"time"
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 	"github.com/CalebQ42/darkstorm-server/internal/blog"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -166,9 +166,10 @@ func editorEdit(w http.ResponseWriter, r *http.Request) {
 	if blogID == "new" {
 		bl = &blog.Blog{}
 	} else {
-		bl, err = blogApp.Blog(r.Context(), r.URL.Query().Get("blog"), false)
+		bl, err = blogApp.Blog(r.Context(), blogID, false)
 		if err != nil {
 			log.Println("error getting blog for editor:", err)
+			log.Println(blogID)
 			sendContent(w, r, "ERROR", "", "")
 			return
 		}
@@ -210,14 +211,11 @@ func editorPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newBlog.ID == "" {
-		var id uuid.UUID
-		id, err = uuid.NewV7()
-		if err != nil {
-			log.Println("error creating new blog ID:", err)
-			sendContent(w, r, "<p>Server error</p>", "", "")
+		newBlog.ID = strings.TrimSpace(strings.ToLower(strings.ReplaceAll(newBlog.ID, " ", "-")))
+		if blogApp.Contains(r.Context(), newBlog.ID) {
+			sendContent(w, r, "<p>Title is not unique!</p>", "", "")
 			return
 		}
-		newBlog.ID = id.String()
 		now := time.Now()
 		newBlog.CreateTime = now.Unix()
 		newBlog.Author = usr.Username

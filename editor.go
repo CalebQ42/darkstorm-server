@@ -39,7 +39,7 @@ const (
 	{{end}}
 	</select>
 </p>
-<div id="editor" hx-on::after-swap="blogEditorResize()"><p>Select a blog!</p></div>
+<div id="editor" hx-on::after-settle="blogEditorResize()"><p>Select a blog!</p></div>
 `
 	editorForm = `
 <form id="editorForm" hx-post="/editor/post">

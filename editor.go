@@ -166,7 +166,7 @@ func editorEdit(w http.ResponseWriter, r *http.Request) {
 	if blogID == "new" {
 		bl = &blog.Blog{}
 	} else {
-		bl, err = blogApp.Blog(r.Context(), r.URL.Query().Get("blog"))
+		bl, err = blogApp.Blog(r.Context(), r.URL.Query().Get("blog"), false)
 		if err != nil {
 			log.Println("error getting blog for editor:", err)
 			sendContent(w, r, "ERROR", "", "")
@@ -252,7 +252,7 @@ func editorPost(w http.ResponseWriter, r *http.Request) {
 		sendContent(w, r, "<p>Server error updating blog</p>", "", "")
 		return
 	}
-	old, err := blogApp.Blog(r.Context(), newBlog.ID)
+	old, err := blogApp.Blog(r.Context(), newBlog.ID, false)
 	if err != nil {
 		log.Println("error getting old blog to be updated:", err)
 		sendContent(w, r, "<p>Updated!</p>", "", "")

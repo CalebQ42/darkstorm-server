@@ -79,12 +79,16 @@ func (b *BlogApp) GetAuthor(ctx context.Context, blog *Blog) (*Author, error) {
 	return &author, err
 }
 
-func (b *BlogApp) Blog(ctx context.Context, ID string) (*Blog, error) {
-	b.cacheMutex.RLock()
-	blog, has := b.blogCache[ID]
-	b.cacheMutex.RUnlock()
-	if has {
-		return &blog, nil
+func (b *BlogApp) Blog(ctx context.Context, ID string, useCache bool) (*Blog, error) {
+	var blog Blog
+	if useCache {
+		b.cacheMutex.RLock()
+		var has bool
+		blog, has = b.blogCache[ID]
+		b.cacheMutex.RUnlock()
+		if has {
+			return &blog, nil
+		}
 	}
 	res := b.blogCol.FindOne(ctx, bson.M{"_id": ID, "draft": false})
 	if res.Err() != nil {
@@ -118,7 +122,7 @@ func (b *BlogApp) reqBlog(w http.ResponseWriter, r *http.Request) {
 		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Must provide a blogID")
 		return
 	}
-	blog, err := b.Blog(r.Context(), blogID)
+	blog, err := b.Blog(r.Context(), blogID, true)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			backend.ReturnError(w, http.StatusNotFound, "notFound", "Not blog found with the given ID")

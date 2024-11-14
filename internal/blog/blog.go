@@ -28,7 +28,8 @@ type Blog struct {
 	Author     string `json:"author" bson:"author"`
 	Favicon    string `json:"favicon" bson:"favicon"`
 	Title      string `json:"title" bson:"title"`
-	Blog       string `json:"blog" bson:"blog"`
+	RawBlog    string `json:"blog" bson:"blog"`
+	HTMLBlog   string `json:"-" bson:"-"`
 	StaticPage bool   `json:"staticPage" bson:"staticPage"`
 	Draft      bool   `json:"draft" bson:"draft"`
 	CreateTime int64  `json:"createTime" bson:"createTime"`
@@ -37,7 +38,7 @@ type Blog struct {
 
 func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
 	if b.StaticPage {
-		return b.Blog
+		return b.RawBlog
 	}
 	out := fmt.Sprintf(blogTitle, b.ID, b.ID, b.Title)
 	auth, err := blogApp.GetAuthor(ctx, b)
@@ -52,7 +53,7 @@ func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
 	} else {
 		out += fmt.Sprintf(blogCreate, cTime)
 	}
-	out += fmt.Sprintf(blogMain, b.Blog)
+	out += fmt.Sprintf(blogMain, b.HTMLBlog)
 	if err == nil {
 		out += "<h2 class='blog-author-info'>About the author:</h2>" + auth.HTML()
 	}
@@ -61,7 +62,7 @@ func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {
 	if !blog.StaticPage {
-		blog.Blog = b.conv.HTMLConvert(blog.Blog)
+		blog.HTMLBlog = b.conv.HTMLConvert(blog.RawBlog)
 	}
 }
 

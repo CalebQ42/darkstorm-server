@@ -152,10 +152,16 @@ func setupWebsite(mux *http.ServeMux) {
 	mux.HandleFunc("GET /portfolio", portfolioRequest)
 	mux.HandleFunc("GET /list", blogListHandle)
 
+	err := setupEditorTemplates()
+	if err != nil {
+		log.Println("error setting up editor templates:", err)
+		return
+	}
 	// Editor stuff
 	mux.HandleFunc("GET /login", loginPageRequest)
 	mux.HandleFunc("GET /editor/", editorRequest)
 	mux.HandleFunc("GET /editor/edit", editorEdit)
+	mux.HandleFunc("POST /editor/post", editorPost)
 	mux.HandleFunc("POST /login", trueLoginRequest)
 }
 

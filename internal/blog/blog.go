@@ -230,6 +230,16 @@ func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (b *BlogApp) InsertBlog(ctx context.Context, blog Blog) error {
+	_, err := b.blogCol.InsertOne(ctx, blog)
+	return err
+}
+
+func (b *BlogApp) UpdateBlog(ctx context.Context, ID string, updates bson.M) error {
+	_, err := b.blogCol.UpdateByID(ctx, ID, bson.M{"$set": updates})
+	return err
+}
+
 func (b *BlogApp) LatestBlogs(ctx context.Context, page int64) ([]*Blog, error) {
 	res, err := b.blogCol.Find(ctx, bson.M{"staticPage": false, "draft": false}, options.Find().
 		SetSort(bson.M{"createTime": -1}).
@@ -297,6 +307,24 @@ func (b *BlogApp) BlogList(ctx context.Context, page int64) ([]BlogListResult, e
 		SetSort(bson.M{"createTime": -1}).
 		SetLimit(50).
 		SetSkip(page*50))
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, backend.ErrNotFound
+		}
+		return nil, err
+	}
+	var out []BlogListResult
+	err = res.All(ctx, &out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (b *BlogApp) AllBlogsList(ctx context.Context) ([]BlogListResult, error) {
+	res, err := b.blogCol.Find(ctx, bson.M{}, options.Find().
+		SetProjection(bson.M{"_id": 1, "createTime": 1, "title": 1}).
+		SetSort(bson.M{"createTime": -1}))
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, backend.ErrNotFound

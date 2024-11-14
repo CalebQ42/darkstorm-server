@@ -10,10 +10,9 @@ import (
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 	"github.com/CalebQ42/darkstorm-server/internal/blog"
+	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 )
-
-// //go:embed embed
-// var editorFS embed.FS
 
 const (
 	loginPage = `
@@ -32,29 +31,30 @@ const (
 			name='blog'
 			hx-get='/editor/edit'
 			hx-target='#editor'>
-		<option value=""></option>
+		<option value=""{{if eq .Selected ""}} selected{{end}}></option>
 		<option value='new'>New Blog</option>
-	{{ range $blog := . }}
-		<option value='{{$blog.ID}}'>{{$blog.Title}}</option>
+	{{ range $blog := .Blogs }}
+		<option value='{{.ID}}'{{if eq $.Selected .ID}} selected{{end}}>{{.Title}}</option>
 	{{end}}
 	</select>
 </p>
-<div id="editor" hx-on::after-settle="blogEditorResize()"><p>Select a blog!</p></div>
+<div id="editor" hx-on::after-settle="blogEditorResize()">{{.Editor}}</div>
 `
 	editorForm = `
-<form id="editorForm" hx-post="/editor/post">
-	<input name="id" type="hidden" value="{{.ID}}"></input>
+<form id="editorForm" hx-post="/editor/post" hx-target="#formResult" hx-confirm="Save changes, overwritting previous values??">
+	<input name="id" type="hidden" value="{{.Blog.ID}}"></input>
 	<p>
-		<label for="static" style="margin-right:10px">Static Page:</label><input type="checkbox" name="static"{{if .StaticPage}} checked {{end}}/>
+		<label for="staticPage" style="margin-right:10px">Static Page:</label><input type="checkbox" name="staticPage"{{if .Blog.StaticPage}} checked {{end}}/>
 		<span class="vertical-seperator"></span>
-		<label for="draft" style="margin-right:10px">Draft:</label><input type="checkbox" name="draft"{{if .Draft}} checked {{end}}/>
+		<label for="draft" style="margin-right:10px">Draft:</label><input type="checkbox" name="draft"{{if or .Blog.Draft (not .Blog.ID)}} checked {{end}}/>
 	</p>
 	<label for="title">Title</label>
-	<input id="titleInput" name="title" value="{{.Title}}" type="text"/>
-	<textarea id="blogEditor" name="blog" oninput="blogEditorResize()">{{.RawBlog}}</textarea>
+	<input id="titleInput" name="title" value="{{.Blog.Title}}" type="text" onkeydown="return event.key != 'Enter';"/>
+	<textarea id="blogEditor" name="blog" oninput="blogEditorResize()">{{.Blog.RawBlog}}</textarea>
+	<div id="formResult">{{.Result}}</div>
 	<p style="margin-right:0px;">
-		<button class="formButton" type="submit" style="margin-right:0px;">{{if eq .ID ""}}Create{{else}}Update{{end}}</button>
-		<button class="formButton" type="submit" style="margin-right:0px;"
+		<button class="formButton" type="submit">{{if eq .Blog.ID ""}}Create{{else}}Update{{end}}</button>
+		<button class="formButton"
 				hx-get="/editor/edit"
 				hx-include="#blogSelect"
 				hx-target="#editor"
@@ -97,24 +97,52 @@ func trueLoginRequest(w http.ResponseWriter, r *http.Request) {
 		sendContent(w, r, "<p>Server error</p>", "", "")
 		return
 	}
-	w.Header().Set("Set-Cookie", "blogAuthToken="+tok+"; Secure; Max-Age=43170") // Max-Age is 11.5 hours. JWTs are valid for 12 hours.
+	w.Header().Set("Set-Cookie", "blogAuthToken="+tok+"; Secure; Max-Age=43170; SameSite=Lax") // Max-Age is 11.5 hours. JWTs are valid for 12 hours.
 	sendContent(w, r, "<p hx-get='/editor' hx-push-url='true' hx-trigger='load' hx-target='#content'>Successful Login</p>", "", "")
 }
 
+var (
+	pageTmpl *template.Template
+	formTmpl *template.Template
+)
+
+type pageTmplStruct struct {
+	Selected string
+	Blogs    []blog.BlogListResult
+	Editor   string
+}
+
+type formTmplStruct struct {
+	Blog   blog.Blog
+	Result string
+}
+
+func setupEditorTemplates() error {
+	var err error
+	pageTmpl, err = template.New("page").Parse(editorPage)
+	if err != nil {
+		return err
+	}
+	formTmpl, err = template.New("form").Parse(editorForm)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func editorRequest(w http.ResponseWriter, r *http.Request) {
-	if !verifyEditorCookie(r) {
+	if verifyEditorCookie(r) == nil {
 		editorRedirect(w, r, "/login")
 		return
 	}
-	tmpl, err := template.New("page").Parse(editorPage)
+	blogs, err := blogApp.AllBlogsList(r.Context())
 	if err != nil {
-		log.Println("error parsing editor template:", err)
+		log.Println("error getting all blogs:", err)
 		sendContent(w, r, "ERROR", "", "")
 		return
 	}
-	blogs, _ := blogApp.LatestBlogs(r.Context(), 0)
 	buf := new(bytes.Buffer)
-	err = tmpl.Execute(buf, blogs)
+	err = pageTmpl.Execute(buf, pageTmplStruct{Blogs: blogs})
 	if err != nil {
 		log.Println("error executing editor page template:", err)
 		sendContent(w, r, "ERROR", "", "")
@@ -124,14 +152,8 @@ func editorRequest(w http.ResponseWriter, r *http.Request) {
 }
 
 func editorEdit(w http.ResponseWriter, r *http.Request) {
-	if !verifyEditorCookie(r) {
+	if verifyEditorCookie(r) == nil {
 		editorRedirect(w, r, "/login")
-		return
-	}
-	tmpl, err := template.New("editor").Parse(editorForm)
-	if err != nil {
-		log.Println("error parsing editor template:", err)
-		sendContent(w, r, "ERROR", "", "")
 		return
 	}
 	var bl *blog.Blog
@@ -140,6 +162,7 @@ func editorEdit(w http.ResponseWriter, r *http.Request) {
 		sendContent(w, r, "<p>Select a blog!</p>", "", "")
 		return
 	}
+	var err error
 	if blogID == "new" {
 		bl = &blog.Blog{}
 	} else {
@@ -151,7 +174,7 @@ func editorEdit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	buf := new(bytes.Buffer)
-	err = tmpl.Execute(buf, bl)
+	err = formTmpl.Execute(buf, formTmplStruct{Blog: *bl})
 	if err != nil {
 		log.Println("error executing editor template:", err)
 		sendContent(w, r, "ERROR", "", "")
@@ -160,22 +183,114 @@ func editorEdit(w http.ResponseWriter, r *http.Request) {
 	sendContent(w, r, buf.String(), "", "")
 }
 
-func verifyEditorCookie(r *http.Request) bool {
+func editorPost(w http.ResponseWriter, r *http.Request) {
+	usr := verifyEditorCookie(r)
+	if usr == nil {
+		editorRedirect(w, r, "/login")
+		return
+	}
+	if usr.Perm["blog"] != "admin" {
+		sendContent(w, r, "<p>You are not allowed to perform this action. Sorry, not sorry.</p>", "", "")
+		return
+	}
+	err := r.ParseForm()
+	if err != nil {
+		sendContent(w, r, "<p>Bad request</p>", "", "")
+		return
+	}
+	newBlog := blog.Blog{
+		ID:         r.FormValue("id"),
+		Title:      r.FormValue("title"),
+		RawBlog:    r.FormValue("blog"),
+		Draft:      r.FormValue("draft") == "on",
+		StaticPage: r.FormValue("staticPage") == "on",
+	}
+	if newBlog.Title == "" || newBlog.RawBlog == "" {
+		sendContent(w, r, "<p>Title and Blog content required</p>", "", "")
+		return
+	}
+	if newBlog.ID == "" {
+		var id uuid.UUID
+		id, err = uuid.NewV7()
+		if err != nil {
+			log.Println("error creating new blog ID:", err)
+			sendContent(w, r, "<p>Server error</p>", "", "")
+			return
+		}
+		newBlog.ID = id.String()
+		now := time.Now()
+		newBlog.CreateTime = now.Unix()
+		newBlog.Author = usr.Username
+		err = blogApp.InsertBlog(r.Context(), newBlog)
+		if err != nil {
+			log.Println("error creating new blog ID:", err)
+			sendContent(w, r, "<p>Error inserting into DB</p>", "", "")
+			return
+		}
+		var blogs []blog.BlogListResult
+		blogs, err = blogApp.AllBlogsList(r.Context())
+		if err != nil {
+			log.Println("error getting all blogs list:", err)
+			sendContent(w, r, "<p>Successfully save, but page reload failed</p>", "", "")
+			return
+		}
+		w.Header().Set("HX-Retarget", "#content")
+		newForm := new(bytes.Buffer)
+		formTmpl.Execute(newForm, formTmplStruct{Blog: newBlog, Result: "<p>Successfully Created</p>"})
+		pageTmpl.Execute(w, pageTmplStruct{Selected: newBlog.ID, Blogs: blogs, Editor: newForm.String()})
+		return
+	}
+	err = blogApp.UpdateBlog(r.Context(), newBlog.ID,
+		bson.M{
+			"updateTime": time.Now().Unix(),
+			"title":      newBlog.Title,
+			"blog":       newBlog.RawBlog,
+			"draft":      newBlog.Draft,
+			"staticPage": newBlog.StaticPage})
+	if err != nil {
+		log.Println("error updating blog:", err)
+		sendContent(w, r, "<p>Server error updating blog</p>", "", "")
+		return
+	}
+	old, err := blogApp.Blog(r.Context(), newBlog.ID)
+	if err != nil {
+		log.Println("error getting old blog to be updated:", err)
+		sendContent(w, r, "<p>Updated!</p>", "", "")
+		return
+	}
+	if old.Title == newBlog.Title {
+		sendContent(w, r, "<p>Updated!</p>", "", "")
+		return
+	}
+	var blogs []blog.BlogListResult
+	blogs, err = blogApp.AllBlogsList(r.Context())
+	if err != nil {
+		log.Println("error getting all blogs list:", err)
+		sendContent(w, r, "<p>Updated!</p>", "", "")
+		return
+	}
+	w.Header().Set("HX-Retarget", "#content")
+	newForm := new(bytes.Buffer)
+	formTmpl.Execute(newForm, formTmplStruct{Blog: newBlog, Result: "<p>Successfully Created</p>"})
+	pageTmpl.Execute(w, pageTmplStruct{Selected: newBlog.ID, Blogs: blogs, Editor: newForm.String()})
+}
+
+func verifyEditorCookie(r *http.Request) *backend.User {
 	authCookie, err := r.Cookie("blogAuthToken")
 	if err != nil {
 		if err != http.ErrNoCookie {
 			log.Println("error getting auth cookie:", err)
 		}
-		return false
+		return nil
 	}
-	_, err = back.VerifyUser(r.Context(), authCookie.Value)
+	usr, err := back.VerifyUser(r.Context(), authCookie.Value)
 	if err != nil {
 		if err != backend.ErrTokenUnauthorized {
 			log.Println("error authorizing JWT token:", err)
 		}
-		return false
+		return nil
 	}
-	return true
+	return usr
 }
 
 func editorRedirect(w http.ResponseWriter, r *http.Request, path string) {

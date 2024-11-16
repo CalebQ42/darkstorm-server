@@ -29,7 +29,7 @@ func latestBlogsHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func blogHandle(w http.ResponseWriter, r *http.Request, blog string) {
-	bl, err := blogApp.Blog(r.Context(), blog, true)
+	bl, err := blogApp.Blog(r.Context(), blog)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			w.WriteHeader(404)

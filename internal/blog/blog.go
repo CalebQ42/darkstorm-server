@@ -79,16 +79,12 @@ func (b *BlogApp) GetAuthor(ctx context.Context, blog *Blog) (*Author, error) {
 	return &author, err
 }
 
-func (b *BlogApp) Blog(ctx context.Context, ID string, useCache bool) (*Blog, error) {
-	var blog Blog
-	if useCache {
-		b.cacheMutex.RLock()
-		var has bool
-		blog, has = b.blogCache[ID]
-		b.cacheMutex.RUnlock()
-		if has {
-			return &blog, nil
-		}
+func (b *BlogApp) Blog(ctx context.Context, ID string) (*Blog, error) {
+	b.cacheMutex.RLock()
+	blog, has := b.blogCache[ID]
+	b.cacheMutex.RUnlock()
+	if has {
+		return &blog, nil
 	}
 	res := b.blogCol.FindOne(ctx, bson.M{"_id": ID, "draft": false})
 	if res.Err() != nil {
@@ -109,8 +105,25 @@ func (b *BlogApp) Blog(ctx context.Context, ID string, useCache bool) (*Blog, er
 	return &blog, nil
 }
 
+func (b *BlogApp) AnyBlog(ctx context.Context, ID string) (*Blog, error) {
+	res := b.blogCol.FindOne(ctx, bson.M{"_id": ID})
+	if res.Err() != nil {
+		if res.Err() == mongo.ErrNoDocuments {
+			return nil, backend.ErrNotFound
+		}
+		return nil, res.Err()
+	}
+	var blog Blog
+	err := res.Decode(&blog)
+	if err != nil {
+		return nil, err
+	}
+	b.ConvertBlog(&blog)
+	return &blog, nil
+}
+
 func (b *BlogApp) Contains(ctx context.Context, ID string) bool {
-	res := b.blogCol.FindOne(ctx, bson.M{"_id": ID, "draft": false})
+	res := b.blogCol.FindOne(ctx, bson.M{"_id": ID})
 	return res.Err() == nil
 }
 
@@ -127,7 +140,7 @@ func (b *BlogApp) reqBlog(w http.ResponseWriter, r *http.Request) {
 		backend.ReturnError(w, http.StatusBadRequest, "badRequest", "Must provide a blogID")
 		return
 	}
-	blog, err := b.Blog(r.Context(), blogID, true)
+	blog, err := b.Blog(r.Context(), blogID)
 	if err != nil {
 		if err == backend.ErrNotFound {
 			backend.ReturnError(w, http.StatusNotFound, "notFound", "Not blog found with the given ID")

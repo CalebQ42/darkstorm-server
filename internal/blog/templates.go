@@ -1,8 +1,12 @@
 package blog
 
+import (
+	"text/template"
+)
+
 const editor = `
 <p id="editSelector" hx-target="#editPage" hx-swap="swap:0.5s settle:0.5s" hx-push-url="true">
-	<a href="/editor/blog" hx-get="/editor/blog" class="editSelectorItems{{if eq .SelectedPage "blogs"}} editSelectorSelected{{end}}" {{if eq .SelectedPage "blogs"}}{{end}}>Blogs</a>
+	<a href="/editor/blog" hx-get="/editor/blog" class="editSelectorItems{{if (eq .SelectedPage "blogs") | (eq .SelectedPage "")}} editSelectorSelected{{end}}" {{if eq .SelectedPage "blogs"}}{{end}}>Blogs</a>
 	<a href="/editor/portfolio" hx-get="/editor/portfolio" class="editSelectorItems{{if eq .SelectedPage "portfolio"}} editSelectorSelected{{end}}">Portfolio</a>
 	<a href="/editor/author" hx-get="/editor/author" class="editSelectorItems{{if eq .SelectedPage "author"}} editSelectorSelected{{end}}">Author</a>
 </p>
@@ -33,6 +37,7 @@ type blogPageStruct struct {
 	Blogs    []BlogList
 }
 
+// TODO: Add delete
 const blogForm = `
 <form id="editorForm" hx-post="/editor/blog/post" hx-target="#formResult" hx-confirm="Save changes, overwritting previous values??">
 	<input name="id" type="hidden" value="{{.Blog.ID}}"></input>
@@ -149,4 +154,34 @@ const authorForm = `<form id="editorForm" hx-post="/editor/author/post" hx-targe
 type authorFormStruct struct {
 	Author Author
 	Result string
+}
+
+func (b *Backend) parseTemplates() error {
+	var err error
+	b.tmpl, err = template.New("editor").Parse(editor)
+	if err != nil {
+		return err
+	}
+	b.tmpl, err = template.New("blogPage").Parse(blogPage)
+	if err != nil {
+		return err
+	}
+	b.tmpl, err = template.New("blogForm").Parse(blogForm)
+	if err != nil {
+		return err
+	}
+	b.tmpl, err = template.New("portfolioPage").Parse(portfolioPage)
+	if err != nil {
+		return err
+	}
+	b.tmpl, err = template.New("portfolioForm").Parse(portfolioForm)
+	if err != nil {
+		return err
+	}
+	b.tmpl, err = template.New("authorPage").Parse(authorPage)
+	if err != nil {
+		return err
+	}
+	b.tmpl, err = template.New("authorForm").Parse(authorForm)
+	return err
 }

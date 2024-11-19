@@ -1,63 +1,39 @@
 package blog
 
 import (
+	"log"
 	"net/http"
 	"sync"
-
-	"github.com/CalebQ42/bbConvert"
-	"github.com/CalebQ42/darkstorm-server/internal/backend"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type BlogApp struct {
-	back         *backend.Backend
-	blogCol      *mongo.Collection
-	authCol      *mongo.Collection
-	portfolioCol *mongo.Collection
-	conv         bbConvert.ComboConverter
+type HTMXReturner func(http.ResponseWriter, *http.Request) (string, error)
 
-	cacheMutex *sync.RWMutex
-	blogCache  map[string]Blog
+type Backend struct {
+	cacheMutex sync.RWMutex
+	cache      map[string]string
 }
 
-func NewBlogApp(db *mongo.Database) *BlogApp {
-	out := &BlogApp{
-		blogCol:      db.Collection("blog"),
-		authCol:      db.Collection("author"),
-		portfolioCol: db.Collection("portfolio"),
-		conv:         bbConvert.NewComboConverter(),
-		cacheMutex:   &sync.RWMutex{},
-		blogCache:    make(map[string]Blog),
-	}
-	return out
+func (b *Backend) AddToMux(mux *http.ServeMux) {
+	mux.HandleFunc("GET /editor/{page}", b.editorPage)
 }
 
-func (b *BlogApp) AppID() string {
-	return "blog"
-}
-
-func (b *BlogApp) CountTable() backend.CountTable {
-	return nil
-}
-
-func (b *BlogApp) CrashTable() backend.CrashTable {
-	return nil
-}
-
-func (b *BlogApp) AddBackend(back *backend.Backend) {
-	b.back = back
-}
-
-func (b *BlogApp) Extension(mux *http.ServeMux) {
-	mux.HandleFunc("GET /blog", b.reqLatestBlogs)
-	mux.HandleFunc("GET /blog/list", b.reqBlogList)
-	mux.HandleFunc("GET /blog/{blogID}", b.reqBlog)
-	mux.HandleFunc("POST /blog", b.createBlog)
-	mux.HandleFunc("POST /blog/{blogID}", b.updateBlog)
-
-	mux.HandleFunc("GET /blog/author/{authorID}", b.reqAuthorInfo)
-	mux.HandleFunc("POST /blog/author", b.addAuthorInfo)
-	mux.HandleFunc("POST /blog/author/{authorID}", b.updateAuthorInfo)
-
-	mux.HandleFunc("GET /blog/portfolio", b.reqPortfolio)
+func (b *Backend) cacheMiddleware(h HTMXReturner) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b.cacheMutex.RLock()
+		if pag, ok := b.cache[r.URL.EscapedPath()]; ok {
+			w.Write([]byte(pag))
+			b.cacheMutex.RUnlock()
+			return
+		}
+		b.cacheMutex.RUnlock()
+		b.cacheMutex.Lock()
+		defer b.cacheMutex.Unlock()
+		res, err := h(w, r)
+		if err != nil {
+			log.Printf("error getting %v: %v", r.URL.EscapedPath(), err)
+		} else {
+			b.cache[r.URL.EscapedPath()] = res
+		}
+		w.Write([]byte(res))
+	})
 }

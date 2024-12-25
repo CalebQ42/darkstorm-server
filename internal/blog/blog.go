@@ -61,9 +61,10 @@ func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
 }
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {
-	if !blog.StaticPage {
-		blog.HTMLBlog = b.conv.HTMLConvert(blog.RawBlog)
-	}
+	//TODO: fix bbConvert
+	// if !blog.StaticPage {
+	// 	blog.HTMLBlog = b.conv.HTMLConvert(blog.RawBlog)
+	// }
 }
 
 func (b *BlogApp) GetAuthor(ctx context.Context, blog *Blog) (*Author, error) {

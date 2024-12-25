@@ -38,8 +38,7 @@ const (
 	{{end}}
 	</select>
 </p>
-<div id="editor" hx-on::after-settle="blogEditorResize()">{{.Editor}}</div>
-`
+<div id="editor" hx-on::after-settle="blogEditorResize()">{{.Editor}}</div>`
 	editorForm = `
 <form id="editorForm" hx-post="/editor/post" hx-target="#formResult" hx-confirm="Save changes, overwritting previous values??">
 	<input name="id" type="hidden" value="{{.Blog.ID}}"></input>
@@ -81,11 +80,12 @@ func trueLoginRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	u, err := back.TryLogin(r.Context(), r.FormValue("username"), r.FormValue("password"))
 	if err != nil {
-		if err == backend.ErrLoginTimeout {
-			sendContent(w, r, fmt.Sprint("<p>Timed out for", time.Unix(u.Timeout, 0).Sub(time.Now()), "</p>"), "", "")
-		} else if err == backend.ErrLoginIncorrect {
+		switch err {
+		case backend.ErrLoginTimeout:
+			sendContent(w, r, fmt.Sprint("<p>Timed out for", time.Until(time.Unix(u.Timeout, 0)), "</p>"), "", "")
+		case backend.ErrLoginIncorrect:
 			sendContent(w, r, "<p>Username or password invalid</p>", "", "")
-		} else {
+		default:
 			log.Println("error trying to login:", err)
 			sendContent(w, r, "<p>Server error</p>", "", "")
 		}
@@ -211,7 +211,7 @@ func editorPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newBlog.ID == "" {
-		newBlog.ID = strings.TrimSpace(strings.ToLower(strings.ReplaceAll(newBlog.ID, " ", "-")))
+		newBlog.ID = strings.TrimSpace(strings.ToLower(strings.ReplaceAll(newBlog.Title, " ", "-")))
 		if blogApp.Contains(r.Context(), newBlog.ID) {
 			sendContent(w, r, "<p>Title is not unique!</p>", "", "")
 			return

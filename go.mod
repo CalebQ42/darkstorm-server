@@ -3,7 +3,7 @@ module github.com/CalebQ42/darkstorm-server
 go 1.23.4
 
 require (
-	github.com/CalebQ42/bbConvert v1.0.5
+	github.com/CalebQ42/bbConvert v1.0.6
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/lithammer/shortuuid/v3 v3.0.7

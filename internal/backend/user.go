@@ -307,7 +307,7 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	} else {
 		if err == ErrLoginTimeout {
 			ret.Error = "timeout"
-			ret.ErrorMsg = fmt.Sprint("Timed out for", time.Unix(u.Timeout, 0).Sub(time.Now()), "seconds")
+			ret.ErrorMsg = fmt.Sprint("Timed out for", time.Until(time.Unix(u.Timeout, 0)), "seconds")
 			ret.Timeout = u.Timeout
 		} else {
 			ret.Error = "incorrect"

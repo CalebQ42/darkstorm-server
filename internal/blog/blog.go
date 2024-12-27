@@ -262,6 +262,11 @@ func (b *BlogApp) UpdateBlog(ctx context.Context, ID string, updates bson.M) err
 	return err
 }
 
+func (b *BlogApp) RemoveBlog(ctx context.Context, ID string) error {
+	_, err := b.blogCol.DeleteOne(ctx, bson.M{"_id": ID})
+	return err
+}
+
 func (b *BlogApp) LatestBlogs(ctx context.Context, page int64) ([]*Blog, error) {
 	res, err := b.blogCol.Find(ctx, bson.M{"staticPage": false, "draft": false}, options.Find().
 		SetSort(bson.M{"createTime": -1}).

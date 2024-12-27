@@ -51,8 +51,7 @@ const (
 	<input id="titleInput" name="title" value="{{.Blog.Title}}" type="text" onkeydown="return event.key != 'Enter';"/>
 	<textarea id="blogEditor" name="blog" oninput="blogEditorResize()">{{.Blog.RawBlog}}</textarea>
 	<div id="formResult">{{.Result}}</div>
-	<p style="margin-right:0px;">
-		<button class="formButton" type="submit">{{if eq .Blog.ID ""}}Create{{else}}Update{{end}}</button>
+	<p style="margin-right:0px;display:flex;">
 		<button class="formButton"
 				hx-get="/editor/edit"
 				hx-include="#blogSelect"
@@ -60,6 +59,16 @@ const (
 				hx-confirm="Undo all your changes??">
 			Cancel
 		</button>
+		<span style="flex-grow:1;"></span>
+		<button class="formButton"
+				hx-delete="/editor/edit"
+				hx-include="#blogSelect"
+				hx-target="#editor"
+				hx-confirm="Delete Page????">
+			Delete
+		</button>
+		<span style="flex-grow:1;"></span>
+		<button class="formButton" type="submit">{{if eq .Blog.ID ""}}Create{{else}}Update{{end}}</button>
 	<p>
 </form>`
 )
@@ -271,6 +280,43 @@ func editorPost(w http.ResponseWriter, r *http.Request) {
 	newForm := new(bytes.Buffer)
 	formTmpl.Execute(newForm, formTmplStruct{Blog: newBlog, Result: "<p>Successfully Created</p>"})
 	pageTmpl.Execute(w, pageTmplStruct{Selected: newBlog.ID, Blogs: blogs, Editor: newForm.String()})
+}
+
+func editorDelete(w http.ResponseWriter, r *http.Request) {
+	usr := verifyEditorCookie(r)
+	if usr == nil {
+		editorRedirect(w, r, "/login")
+		return
+	}
+	if usr.Perm["blog"] != "admin" {
+		sendContent(w, r, "<p>You are not allowed to perform this action. Sorry, not sorry.</p>", "", "")
+		return
+	}
+	err := r.ParseForm()
+	if err != nil {
+		sendContent(w, r, "<p>Bad request</p>", "", "")
+		return
+	}
+	id := r.FormValue("id")
+	if id == "" {
+		sendContent(w, r, "<p>Invalid ID</p>", "", "")
+		return
+	}
+	err = blogApp.RemoveBlog(r.Context(), id)
+	if err != nil {
+		log.Println("error updating blog:", err)
+		sendContent(w, r, "<p>Server error removing blog</p>", "", "")
+		return
+	}
+	var blogs []blog.BlogListResult
+	blogs, err = blogApp.AllBlogsList(r.Context())
+	if err != nil {
+		log.Println("error getting all blogs list:", err)
+		sendContent(w, r, "<p>Updated!</p>", "", "")
+		return
+	}
+	w.Header().Set("HX-Retarget", "#content")
+	pageTmpl.Execute(w, pageTmplStruct{Selected: "", Blogs: blogs, Editor: "<p>Blog removed!</p>"})
 }
 
 func verifyEditorCookie(r *http.Request) *backend.User {

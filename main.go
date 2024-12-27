@@ -160,6 +160,7 @@ func setupWebsite(mux *http.ServeMux) {
 	// Editor stuff
 	mux.HandleFunc("GET /login", loginPageRequest)
 	mux.HandleFunc("GET /editor/", editorRequest)
+	mux.HandleFunc("DELETE /editor/edit", editorDelete)
 	mux.HandleFunc("GET /editor/edit", editorEdit)
 	mux.HandleFunc("POST /editor/post", editorPost)
 	mux.HandleFunc("POST /login", trueLoginRequest)

@@ -15,10 +15,11 @@ import (
 )
 
 const authorInfo = `
-<table><tr>
-	<td><img src="%v" alt="%v" class='author-pic'></td>
-	<td><h3 class="author-title">%v</h3>%v</td>
-</tr></table>`
+<div>
+	<img src="%v" alt="%v" class='author-pic'>
+	<h3 class="author-title">%v</h3>
+	<p>%v<p>
+</div>`
 
 type Author struct {
 	ID     string `json:"id" bson:"_id"`

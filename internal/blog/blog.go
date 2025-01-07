@@ -20,6 +20,7 @@ const (
 	blogTitle  = "<h1 class='blog-title'><a hx-push-url='true' hx-get='/%v' hx-target='#content' href='/%v' style='text-decoration:none'>%v</a></h1>"
 	blogAuthor = "<h4 class='blog-author'><i><b>By %v</b></i></h4>"
 	blogCreate = "<h5 class='blog-time'><i>Written on: %v</i></h5>"
+	blogUpdate = "<h5 class='blog-time'><i>Updated on: %v</i></h5>"
 	blogMain   = "<div class='blog'>%v</div>"
 )
 
@@ -47,11 +48,9 @@ func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
 	} else {
 		out += fmt.Sprintf(blogAuthor, "unknown")
 	}
-	cTime := time.Unix(b.CreateTime, 0).Format(time.DateOnly)
+	out += fmt.Sprintf(blogCreate, time.Unix(b.CreateTime, 0).Format(time.DateOnly))
 	if b.UpdateTime > b.CreateTime {
-		out += fmt.Sprintf(blogCreate, cTime+"; Last updated on: "+time.Unix(b.UpdateTime, 0).Format(time.DateOnly))
-	} else {
-		out += fmt.Sprintf(blogCreate, cTime)
+		out += fmt.Sprintf(blogUpdate, time.Unix(b.UpdateTime, 0).Format(time.DateOnly))
 	}
 	out += fmt.Sprintf(blogMain, b.HTMLBlog)
 	if err == nil {

@@ -33,7 +33,7 @@ func (a Author) HTML() string {
 }
 
 func (b *BlogApp) AboutMe(ctx context.Context) (*Author, error) {
-	res := b.authCol.FindOne(ctx, bson.M{"_id": "caleb_gardner"})
+	res := b.authCol.FindOne(ctx, bson.M{"_id": "BelacDarkstorm"})
 	if res.Err() != nil {
 		log.Println("error getting about me:", res.Err())
 		if res.Err() == mongo.ErrNoDocuments {

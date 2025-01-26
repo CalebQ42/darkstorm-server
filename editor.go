@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 	"text/template"
 	"time"
 
@@ -220,7 +219,7 @@ func editorPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newBlog.ID == "" {
-		newBlog.ID = strings.TrimSpace(strings.ToLower(strings.ReplaceAll(newBlog.Title, " ", "-")))
+		newBlog.ID = newBlog.IDFromTitle()
 		if blogApp.Contains(r.Context(), newBlog.ID) {
 			sendContent(w, r, "<p>Title is not unique!</p>", "", "")
 			return

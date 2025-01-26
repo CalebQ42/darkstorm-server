@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
@@ -57,6 +59,11 @@ func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
 		out += "<h2 class='blog-author-info'>About the author:</h2>" + auth.HTML()
 	}
 	return out
+}
+
+func (b Blog) IDFromTitle() string {
+	id := strings.Join(regexp.MustCompile("([A-z]| |[0-9])*").FindAllString(b.Title, -1), "")
+	return strings.ReplaceAll(id, " ", "-")
 }
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {

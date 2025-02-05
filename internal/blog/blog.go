@@ -63,7 +63,7 @@ func (b *Blog) HTMX(blogApp *BlogApp, ctx context.Context) string {
 
 func (b Blog) IDFromTitle() string {
 	id := strings.Join(regexp.MustCompile("([A-z]| |[0-9])*").FindAllString(b.Title, -1), "")
-	return strings.ReplaceAll(id, " ", "-")
+	return strings.ToLower(strings.ReplaceAll(id, " ", "-"))
 }
 
 func (b *BlogApp) ConvertBlog(blog *Blog) {

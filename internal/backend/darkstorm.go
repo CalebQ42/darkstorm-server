@@ -75,19 +75,24 @@ func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
 }
 
 func (b *Backend) cleanupLoop() {
+	b.cleanup()
 	for range time.Tick(24 * time.Hour) {
-		old := getDate(time.Now().Add(-30 * 24 * time.Hour))
-		var err error
-		for _, a := range b.apps {
-			log.Printf("Removing logs for %v", a.AppID())
-			tab := a.CountTable()
-			if tab == nil {
-				continue
-			}
-			err = tab.RemoveOldLogs(context.Background(), old)
-			if err != nil {
-				log.Printf("error removing old logs for %v: %v\n", a.AppID(), err)
-			}
+		b.cleanup()
+	}
+}
+
+func (b *Backend) cleanup() {
+	old := getDate(time.Now().Add(-30 * 24 * time.Hour))
+	var err error
+	for _, a := range b.apps {
+		log.Printf("Removing logs for %v", a.AppID())
+		tab := a.CountTable()
+		if tab == nil {
+			continue
+		}
+		err = tab.RemoveOldLogs(context.Background(), old)
+		if err != nil {
+			log.Printf("error removing old logs for %v: %v\n", a.AppID(), err)
 		}
 	}
 }

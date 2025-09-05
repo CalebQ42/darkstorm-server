@@ -112,6 +112,7 @@ func (b *Backend) managementDeleteCrash(w http.ResponseWriter, r *http.Request) 
 func (b *Backend) actualCrashDelete(ctx context.Context, w http.ResponseWriter, ap App, crashID string) {
 	crash := ap.CrashTable()
 	if crash == nil {
+		log.Println(ap.AppID(), "misconfigured: crash table is nil.")
 		ReturnError(w, http.StatusInternalServerError, "misconfigured", "Server Misconfigured")
 		return
 	}
@@ -166,6 +167,7 @@ func (b *Backend) managementArchiveCrash(w http.ResponseWriter, r *http.Request)
 func (b *Backend) actualCrashArchive(ctx context.Context, w http.ResponseWriter, ap App, toArchive ArchivedCrash) {
 	crash := ap.CrashTable()
 	if crash == nil {
+		log.Println(ap.AppID(), "misconfigured: crash table is nil.")
 		ReturnError(w, http.StatusInternalServerError, "misconfigured", "Server Misconfigured")
 		return
 	}

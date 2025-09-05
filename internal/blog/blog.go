@@ -187,6 +187,7 @@ func (b *BlogApp) createBlog(w http.ResponseWriter, r *http.Request) {
 	}
 	id, err := uuid.NewV7()
 	if err != nil {
+		log.Println("error generating UUID:", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
 		return
 	}
@@ -247,6 +248,7 @@ func (b *BlogApp) updateBlog(w http.ResponseWriter, r *http.Request) {
 		if err == mongo.ErrNoDocuments {
 			backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
 		} else {
+			log.Println("error updating blog", r.PathValue("blogID")+":", err)
 			backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
 		}
 		return

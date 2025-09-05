@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 	"strings"
@@ -120,6 +121,7 @@ func (b *BlogApp) Projects(ctx context.Context, techFilter string) (Portfolio, e
 func (b *BlogApp) reqPortfolio(w http.ResponseWriter, r *http.Request) {
 	folio, err := b.Projects(r.Context(), r.URL.Query().Get("tech"))
 	if err != nil {
+		log.Println("error getting projects with filter", r.URL.Query().Get("tech")+":", err)
 		backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
 		return
 	}

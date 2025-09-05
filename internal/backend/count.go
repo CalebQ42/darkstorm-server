@@ -49,6 +49,7 @@ func (b *Backend) countLog(w http.ResponseWriter, r *http.Request) {
 	ap := b.GetApp(hdr.Key)
 	count := ap.CountTable()
 	if count == nil {
+		log.Println(ap.AppID(), "misconfigured: count table is nil.")
 		ReturnError(w, http.StatusInternalServerError, "misconfigured", "Server Misconfigured")
 		return
 	}

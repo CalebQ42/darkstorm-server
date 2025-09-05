@@ -301,6 +301,7 @@ func (b *Backend) login(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		ret.Token, err = b.GenerateJWT(u.ToReqUser())
 		if err != nil {
+			log.Println("error generating JWT token:", err)
 			ReturnError(w, http.StatusInternalServerError, "internal", "Server error")
 			return
 		}

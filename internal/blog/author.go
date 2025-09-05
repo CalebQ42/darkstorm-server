@@ -151,14 +151,15 @@ func (b *BlogApp) updateAuthorInfo(w http.ResponseWriter, r *http.Request) {
 	res, err := b.authCol.UpdateByID(r.Context(), r.PathValue("authorID"), actlUpd)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
+			backend.ReturnError(w, http.StatusNotFound, "notFound", "Author with ID "+r.PathValue("authorID")+" not found")
 		} else {
+			log.Println("error updating author", r.PathValue("authorID")+":", err)
 			backend.ReturnError(w, http.StatusInternalServerError, "internal", "Server Error")
 		}
 		return
 	}
 	if res.MatchedCount == 0 {
-		backend.ReturnError(w, http.StatusNotFound, "notFound", "Blog with ID "+r.PathValue("blogID")+" not found")
+		backend.ReturnError(w, http.StatusNotFound, "notFound", "Author with ID "+r.PathValue("authorID")+" not found")
 		return
 	}
 	w.WriteHeader(http.StatusCreated)

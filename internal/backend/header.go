@@ -10,11 +10,11 @@ import (
 )
 
 var (
-	ErrApiKeyUnauthorized = errors.New("api key present but invalid")
+	ErrAPIKeyUnauthorized = errors.New("api key present but invalid")
 	ErrTokenUnauthorized  = errors.New("token present but invalid")
 )
 
-type ApiKey struct {
+type APIKey struct {
 	Perm           map[string]bool `json:"perm" bson:"perm"`
 	ID             string          `json:"id" bson:"_id" valkey:",key"`
 	AppID          string          `json:"appID" bson:"appID"`
@@ -22,13 +22,13 @@ type ApiKey struct {
 	AllowedOrigins []string        `json:"allowedOrigins" bson:"allowedOrigins"`
 }
 
-func (k ApiKey) GetID() string {
+func (k APIKey) GetID() string {
 	return k.ID
 }
 
 type ParsedHeader struct {
 	User *ReqestUser
-	Key  *ApiKey
+	Key  *APIKey
 }
 
 // Parses the X-API-Key and Authorization headers. If the API Key provided but invalid (either due to expiring or isn't found), ErrApiKeyUnauthorized is returned.
@@ -41,24 +41,24 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 	if key != "" {
 		apiKey, err := b.keyTable.Get(r.Context(), key)
 		if err == ErrNotFound {
-			return nil, ErrApiKeyUnauthorized
+			return nil, ErrAPIKeyUnauthorized
 		} else if err != nil {
 			return nil, err
 		}
 		if apiKey.Death > 0 && time.Unix(apiKey.Death, 0).Before(time.Now()) {
-			return nil, ErrApiKeyUnauthorized
+			return nil, ErrAPIKeyUnauthorized
 		}
 		out.Key = &apiKey
 	} else {
 		fmt.Println("origin:", r.Header.Get("origin"))
 		keys, err := b.keyTable.Find(r.Context(), map[string]any{"allowedOrigins": r.Header.Get("origin")})
 		if err == ErrNotFound {
-			return nil, ErrApiKeyUnauthorized
+			return nil, ErrAPIKeyUnauthorized
 		} else if err != nil {
 			return nil, err
 		}
 		if keys[0].Death > 0 && time.Unix(keys[0].Death, 0).Before(time.Now()) {
-			return nil, ErrApiKeyUnauthorized
+			return nil, ErrAPIKeyUnauthorized
 		}
 		out.Key = &keys[0]
 	}
@@ -87,7 +87,7 @@ func (b *Backend) ParseHeader(r *http.Request) (*ParsedHeader, error) {
 func (b *Backend) VerifyHeader(w http.ResponseWriter, r *http.Request, keyPerm string, allowManagementKey bool) (*ParsedHeader, error) {
 	hdr, err := b.ParseHeader(r)
 	if hdr == nil || hdr.Key == nil {
-		if err == ErrApiKeyUnauthorized {
+		if err == ErrAPIKeyUnauthorized {
 			ReturnError(w, http.StatusUnauthorized, "invalidKey", "Application not authorized")
 			return nil, nil
 		}

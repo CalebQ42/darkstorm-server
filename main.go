@@ -93,7 +93,7 @@ func setupMongo(uri string) {
 func setupBackend(mux *http.ServeMux) {
 	blogApp = blog.NewBlogApp(mongoClient.Database("blog"))
 	var err error
-	back, err = backend.NewBackend(db.NewMongoTable[backend.ApiKey](
+	back, err = backend.NewBackend(db.NewMongoTable[backend.APIKey](
 		mongoClient.Database("darkstorm").Collection("keys")),
 		blogApp,
 		swassistant.NewSWBackend(mongoClient.Database("swassistant")),

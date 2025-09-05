@@ -18,7 +18,7 @@ var robotEmbed embed.FS
 // A simple backend that handles user authentication, user count, and crash reports.
 type Backend struct {
 	userTable       Table[User]
-	keyTable        Table[ApiKey]
+	keyTable        Table[APIKey]
 	m               *http.ServeMux
 	apps            map[string]App
 	managementKeyID string
@@ -29,7 +29,7 @@ type Backend struct {
 }
 
 // Create a new Backend with the given apps. keyTable must be specified.
-func NewBackend(keyTable Table[ApiKey], apps ...App) (*Backend, error) {
+func NewBackend(keyTable Table[APIKey], apps ...App) (*Backend, error) {
 	b := &Backend{
 		keyTable:        keyTable,
 		m:               &http.ServeMux{},
@@ -143,7 +143,7 @@ func (b *Backend) HandleFunc(pattern string, h http.HandlerFunc) {
 }
 
 // Try to get the App associated with the given ApiKey. Returns nil if not found.
-func (b *Backend) GetApp(a *ApiKey) App {
+func (b *Backend) GetApp(a *APIKey) App {
 	return b.apps[a.AppID]
 }
 

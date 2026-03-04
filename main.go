@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"io"
 	"log"
@@ -13,6 +12,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/CalebQ42/darkstorm-server/internal/backend"
 	"github.com/CalebQ42/darkstorm-server/internal/backend/db"
@@ -71,13 +71,8 @@ func main() {
 
 func setupMongo(uri string) {
 	if !*testing {
-		mongoCert, err := tls.LoadX509KeyPair(filepath.Join(flag.Arg(0), "mongo.pem"), filepath.Join(flag.Arg(0), "key.pem"))
-		if err != nil {
-			log.Fatal("error loading mongo keys:", err)
-		}
-		mongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(uri).SetTLSConfig(&tls.Config{
-			Certificates: []tls.Certificate{mongoCert},
-		}))
+		var err error
+		mongoClient, err = mongo.Connect(context.Background(), options.Client().ApplyURI(uri).SetTimeout(5*time.Second))
 		if err != nil {
 			log.Fatal("error connecting to mongo:", err)
 		}

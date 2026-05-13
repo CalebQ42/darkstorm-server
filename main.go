@@ -139,8 +139,11 @@ here:
 
 func setupWebsite(mux *http.ServeMux) {
 	if !*testing {
-		url, _ := url.Parse("https://localhost:30000")
-		mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(url))
+		rpgUrl, _ := url.Parse("https://localhost:30000")
+		mux.Handle("rpg.darkstorm.tech/", httputil.NewSingleHostReverseProxy(rpgUrl))
+
+		gitUrl, _ := url.Parse("https://darkstorm.tech:3000")
+		mux.Handle("git.darkstorm.tech/", httputil.NewSingleHostReverseProxy(gitUrl))
 	}
 	mux.HandleFunc("/", mainHandle)
 	mux.HandleFunc("GET /files/{w...}", filesRequest)

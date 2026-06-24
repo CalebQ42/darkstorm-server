@@ -19,6 +19,7 @@ import (
 	"github.com/CalebQ42/darkstorm-server/internal/blog"
 	"github.com/CalebQ42/darkstorm-server/internal/cdr"
 	"github.com/CalebQ42/darkstorm-server/internal/swassistant"
+	"github.com/inetaf/tcpproxy"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -48,9 +49,15 @@ func main() {
 	}
 	if !*testing {
 		go func() {
-			log.Println("error redirecting http traffice:",
+			log.Println("error redirecting http traffic:",
 				http.ListenAndServe(":80", http.RedirectHandler("https://darkstorm.tech", http.StatusPermanentRedirect)))
 		}()
+	}
+	proxy, err := setupTCPForward()
+	if err != nil {
+		log.Println("error setting up tcp proxy:", err)
+	} else {
+		defer proxy.Close()
 	}
 	mux := http.NewServeMux()
 	setupMongo(*mongoURL)
@@ -60,13 +67,19 @@ func main() {
 		Addr:    *addr,
 		Handler: mux,
 	}
-	var err error
 	if *testing {
 		err = serv.ListenAndServe()
 	} else {
 		err = serv.ListenAndServeTLS(filepath.Join(flag.Arg(0), "fullchain.pem"), filepath.Join(flag.Arg(0), "key.pem"))
 	}
 	log.Println("webserver closed:", err)
+}
+
+func setupTCPForward() (*tcpproxy.Proxy, error) {
+	var proxy tcpproxy.Proxy
+	proxy.AddRoute(":22", tcpproxy.To(":2222"))
+	err := proxy.Start()
+	return &proxy, err
 }
 
 func setupMongo(uri string) {
